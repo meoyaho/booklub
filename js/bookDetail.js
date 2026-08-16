@@ -13,7 +13,7 @@ export function renderBookDetail(book) {
 
     document.getElementById('detail-summary').textContent = book.summary || '';
     document.getElementById('detail-avg-rating').textContent =
-      `평균 별점: ${book.avgRating != null ? book.avgRating : 0} / 5`;
+      `평균 별점: ${book.avgRating != null ? book.avgRating : 0}`;
 
     const reviewsEl = document.getElementById('detail-reviews');
     reviewsEl.innerHTML = '';
