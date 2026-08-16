@@ -29,10 +29,37 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');
 
-const booksCol = collection(db, 'books');
 const analyzeRecordingCallable = httpsCallable(functions, 'analyzeRecording');
 
-export function subscribeBooks(callback) {
+function booksCollection(clubId) {
+  if (!clubId) {
+    throw new Error('독서모임 ID가 필요합니다.');
+  }
+  return collection(db, 'clubs', clubId, 'books');
+}
+
+function bookDocument(clubId, bookId) {
+  if (!clubId || !bookId) {
+    throw new Error('독서모임 ID와 책 ID가 필요합니다.');
+  }
+  return doc(db, 'clubs', clubId, 'books', bookId);
+}
+
+export async function createClub(name) {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error('독서모임명을 입력해주세요.');
+  }
+
+  const docRef = await addDoc(collection(db, 'clubs'), {
+    name: trimmedName,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export function subscribeBooks(clubId, callback) {
+  const booksCol = booksCollection(clubId);
   const q = query(booksCol, orderBy('addedAt', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const books = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -40,7 +67,8 @@ export function subscribeBooks(callback) {
   });
 }
 
-export async function addBook(data) {
+export async function addBook(clubId, data) {
+  const booksCol = booksCollection(clubId);
   const docRef = await addDoc(booksCol, {
     ...data,
     status: 'pending',
@@ -50,12 +78,12 @@ export async function addBook(data) {
   return docRef.id;
 }
 
-export async function updateBook(bookId, data) {
-  await updateDoc(doc(db, 'books', bookId), data);
+export async function updateBook(clubId, bookId, data) {
+  await updateDoc(bookDocument(clubId, bookId), data);
 }
 
-export async function deleteBook(bookId) {
-  await deleteDoc(doc(db, 'books', bookId));
+export async function deleteBook(clubId, bookId) {
+  await deleteDoc(bookDocument(clubId, bookId));
 }
 
 function getAudioExtension(file) {
@@ -76,10 +104,10 @@ function getAudioExtension(file) {
   return typeExtension || 'webm';
 }
 
-export async function uploadRecording(bookId, file) {
+export async function uploadRecording(clubId, bookId, file) {
   const extension = getAudioExtension(file);
   const contentType = file?.type || 'audio/webm';
-  const path = `recordings/${bookId}/${Date.now()}.${extension}`;
+  const path = `recordings/${clubId}/${bookId}/${Date.now()}.${extension}`;
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, file, { contentType });
   const url = await getDownloadURL(storageRef);

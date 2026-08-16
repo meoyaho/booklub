@@ -10,7 +10,21 @@
   <img id="app-logo" src="assets/logo.png" alt="책책책 책을 읽읍시다" class="logo-splash" />
   <input id="upload-file-input" class="native-upload-input" type="file" accept="audio/*" />
 
-  <section id="screen-splash" class="screen active"></section>
+  <section id="screen-splash" class="screen active">
+    <div id="club-gate" class="club-gate hidden" aria-live="polite">
+      <form id="club-create-form" class="club-create-form">
+        <input id="club-name-input" type="text" placeholder="독서모임명을 입력하세요" autocomplete="off" />
+        <button id="club-create-btn" type="submit">초대 링크 만들기</button>
+      </form>
+      <div id="club-invite-result" class="club-invite-result hidden">
+        <div class="club-invite-row">
+          <input id="club-invite-link" type="text" readonly aria-label="초대 링크" />
+          <button id="club-copy-btn" type="button">복사</button>
+        </div>
+        <p id="club-copy-guide" class="club-copy-guide hidden">이 링크로 접속해주세요.</p>
+      </div>
+    </div>
+  </section>
 
   <section id="screen-main" class="screen">
     <div class="main-layout">
@@ -61,10 +75,6 @@
         <button id="upload-confirm-btn" disabled>분석 시작</button>
       </div>
     </div>
-  </section>
-
-  <section id="screen-analyzing" class="screen analyzing-screen">
-    <p class="analyzing-copy">분석중...</p>
   </section>
 
   <script type="module" src="js/app.js"></script>

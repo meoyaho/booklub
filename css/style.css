@@ -20,6 +20,11 @@
   --magazine-copy-size: clamp(0.95rem, 1.45vw, 1.55rem);
   --magazine-copy-line: 1.55;
   --review-row-size: clamp(0.78rem, 1vw, 1rem);
+  --splash-logo-width: min(70vw, 640px);
+  --splash-logo-half-height: min(23.333vw, 213px);
+  --splash-gate-height: 48px;
+  --splash-gap: 18px;
+  --splash-center-shift: calc((var(--splash-gap) + var(--splash-gate-height)) / 2);
 }
 
 body {
@@ -78,9 +83,9 @@ button {
 }
 
 #app-logo.logo-splash {
-  top: 50%;
+  top: calc(50% - var(--splash-center-shift));
   left: 50%;
-  width: min(70vw, 640px);
+  width: var(--splash-logo-width);
 }
 
 #app-logo.logo-docked {
@@ -99,6 +104,67 @@ button {
 
 #app-logo.logo-hidden {
   opacity: 0;
+}
+
+.club-gate {
+  position: fixed;
+  top: calc(50% + var(--splash-logo-half-height) - var(--splash-center-shift));
+  left: 50%;
+  z-index: 150;
+  display: grid;
+  width: min(620px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  gap: 12px;
+}
+
+.club-create-form,
+.club-invite-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  width: 100%;
+}
+
+#club-name-input,
+#club-invite-link {
+  min-width: 0;
+  height: 48px;
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+#club-name-input:focus,
+#club-invite-link:focus {
+  outline: none;
+  border-bottom-color: var(--orange);
+}
+
+#club-create-btn,
+#club-copy-btn {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--ink);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.club-copy-guide {
+  color: var(--orange);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .main-layout {
@@ -255,36 +321,35 @@ button {
 .month-cell {
   position: relative;
   display: grid;
-  grid-template-rows: 22px minmax(0, 1fr) 18px;
+  grid-template-rows: 20px minmax(0, 1fr) 18px;
   justify-items: center;
   align-items: center;
   gap: 4px;
   min-width: 0;
   min-height: 0;
   padding: 8px;
-  border: 1px solid var(--ink);
-  border-radius: 8px;
-  background: var(--panel);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
 }
 
 .month-cell:hover:not(:disabled),
 .month-cell:focus-visible {
-  border-color: var(--orange);
-  outline: 2px solid rgba(255, 74, 20, 0.24);
-  outline-offset: 0;
+  outline: 1px solid rgba(255, 74, 20, 0.28);
+  outline-offset: -1px;
 }
 
 .month-cell.is-selected {
-  border: 3px solid var(--orange);
-  padding: 6px;
+  color: inherit;
+  background: transparent;
 }
 
 .month-cell.is-future {
-  background: #e5e5df;
-  color: #a5a59f;
+  background: transparent;
+  color: transparent;
   cursor: not-allowed;
 }
 
@@ -292,13 +357,13 @@ button {
   position: relative;
   z-index: 3;
   display: block;
-  justify-self: center;
+  justify-self: start;
   align-self: start;
   min-width: 0;
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1;
-  text-align: center;
+  text-align: left;
   pointer-events: none;
 }
 
@@ -312,8 +377,8 @@ button {
 }
 
 .month-cover {
-  width: 48px;
-  height: 68px;
+  width: 56px;
+  height: 82px;
   border-radius: 2px;
   object-fit: cover;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.22);
@@ -470,6 +535,23 @@ button {
   min-width: 0;
 }
 
+.detail-top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mobile-detail-back {
+  display: none;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent url('../assets/back-transparent.png') center / contain no-repeat;
+  cursor: pointer;
+}
+
 .detail-eyebrow {
   min-width: 0;
   margin: 0;
@@ -611,6 +693,16 @@ button {
   font-family: 'Ridibatang', serif;
 }
 
+.month-detail-analysis {
+  display: block;
+}
+
+.month-analysis-copy {
+  color: var(--orange);
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  line-height: 1.35;
+}
+
 .detail-action-primary,
 .detail-action-secondary,
 #search-btn,
@@ -687,6 +779,11 @@ button:disabled {
 
 .meeting-confirm-btn {
   margin-top: 28px;
+}
+
+.meeting-consent-placeholder {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .meeting-permission-copy {
@@ -797,6 +894,10 @@ button:disabled {
 .magazine-summary-input:focus {
   outline: none;
   border-bottom-color: var(--orange);
+}
+
+.magazine-summary-manual {
+  margin-top: 14px;
 }
 
 .magazine-review-form {
@@ -1042,18 +1143,6 @@ button:disabled {
   background: var(--paper);
 }
 
-.analyzing-screen {
-  align-items: center;
-  justify-content: center;
-  background: var(--paper);
-}
-
-.analyzing-copy {
-  color: var(--orange);
-  font-size: clamp(1.4rem, 3vw, 2.4rem);
-  font-weight: 900;
-}
-
 .book {
   position: relative;
   width: 90%;
@@ -1139,36 +1228,63 @@ button:disabled {
 
 @media (max-width: 760px) {
   :root {
-    --detail-copy-size: 0.65rem;
-    --magazine-copy-size: 0.62rem;
-    --review-row-size: 0.48rem;
-    --mobile-logo-width: min(310px, 74vw);
-    --mobile-logo-flow-space: clamp(190px, 60vw, 248px);
-    --mobile-month-label-size: 0.68rem;
     --mobile-year-title-size: 1.12rem;
+    --detail-copy-size: var(--mobile-year-title-size);
+    --magazine-copy-size: var(--mobile-year-title-size);
+    --review-row-size: var(--mobile-year-title-size);
+    --mobile-logo-width: min(310px, 74vw);
+    --mobile-logo-top: 24px;
+    --mobile-logo-flow-space: clamp(200px, calc(60vw + 10px), 258px);
+    --mobile-month-label-size: var(--mobile-year-title-size);
     --mobile-meeting-logo-row: clamp(202px, 58vw, 238px);
     --mobile-meeting-copy-size: var(--mobile-year-title-size);
+    --mobile-detail-cover-width: 84px;
+    --mobile-detail-cover-height: 126px;
+    --splash-logo-width: var(--mobile-logo-width);
+    --splash-logo-half-height: min(24.667vw, 103px);
+    --splash-gate-height: 104px;
+    --splash-gap: 16px;
   }
 
   #app-logo.logo-splash {
     position: fixed;
-    width: var(--mobile-logo-width);
+    width: var(--splash-logo-width);
+  }
+
+  .club-gate {
+    top: calc(50% + var(--splash-logo-half-height) - var(--splash-center-shift));
+    width: min(360px, calc(100vw - 32px));
+  }
+
+  .club-create-form,
+  .club-invite-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  #club-name-input,
+  #club-invite-link,
+  #club-create-btn,
+  #club-copy-btn,
+  .club-copy-guide {
+    font-size: var(--mobile-year-title-size);
   }
 
   #app-logo.logo-docked,
   #app-logo.logo-meeting {
     position: absolute;
-    top: 14px;
+    top: var(--mobile-logo-top);
     left: 50%;
     width: var(--mobile-logo-width);
     transform: translateX(-50%);
   }
 
   body {
-    height: auto;
-    min-height: 100vh;
+    font-size: var(--mobile-year-title-size);
+    height: 100svh;
+    min-height: 100svh;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
   }
 
   body.is-meeting-screen {
@@ -1178,8 +1294,9 @@ button:disabled {
   }
 
   #screen-main.screen {
-    height: auto;
-    min-height: 100vh;
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
   }
 
   #screen-main.screen.is-meeting-screen {
@@ -1191,11 +1308,12 @@ button:disabled {
   .main-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     width: 100%;
     max-width: 100vw;
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
   }
 
   .main-layout::before {
@@ -1218,18 +1336,20 @@ button:disabled {
   .main-left {
     width: 100%;
     max-width: 100vw;
-    height: auto;
+    height: 100%;
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .book-slider {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
     width: 100%;
     max-width: 100vw;
-    height: auto;
+    height: 100%;
     min-height: 0;
-    padding: var(--mobile-logo-flow-space) 16px 22px;
+    padding: var(--mobile-logo-flow-space) 16px 16px;
     overflow: hidden;
   }
 
@@ -1267,13 +1387,17 @@ button:disabled {
     bottom: 6px;
     max-width: 340px;
     margin: 0 auto;
-    font-size: 0.9rem;
+    font-size: var(--mobile-year-title-size);
   }
 
   .month-board {
     width: min(100%, calc(100vw - 32px));
     max-width: 360px;
+    height: 100%;
     margin: 0 auto;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
   }
 
   .year-header {
@@ -1293,18 +1417,15 @@ button:disabled {
   }
 
   .month-grid {
-    grid-template-rows: repeat(3, 80px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
     gap: 4px;
+    min-height: 0;
   }
 
   .month-cell {
-    grid-template-rows: 16px minmax(0, 1fr) 13px;
+    grid-template-rows: 20px minmax(0, 1fr) 20px;
     padding: 5px;
-    border-radius: 7px;
-  }
-
-  .month-cell.is-selected {
-    padding: 3px;
   }
 
   .month-label {
@@ -1312,8 +1433,8 @@ button:disabled {
   }
 
   .month-cover {
-    width: 28px;
-    height: 42px;
+    width: 42px;
+    height: 64px;
   }
 
   .month-empty {
@@ -1321,7 +1442,7 @@ button:disabled {
   }
 
   .star-rating {
-    font-size: 0.52rem;
+    font-size: var(--mobile-year-title-size);
   }
 
   .month-detail-scroll {
@@ -1332,9 +1453,36 @@ button:disabled {
   .month-detail {
     width: 100%;
     max-width: 100vw;
-    height: auto;
+    height: 100svh;
     min-height: 0;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .main-layout:not(.is-mobile-detail-page):not(.is-meeting-rules):not(.is-meeting-active) .month-detail {
+    display: none;
+  }
+
+  .main-layout.is-mobile-detail-page .main-left {
+    display: none;
+  }
+
+  .main-layout.is-mobile-detail-page .month-detail {
+    display: block;
+  }
+
+  body.is-mobile-detail-page #app-logo.logo-docked,
+  body.is-mobile-detail-page #app-logo.logo-meeting {
+    opacity: 0;
+  }
+
+  .main-layout.is-mobile-detail-page .month-detail-scroll {
+    min-height: 100%;
+    padding: 16px 16px 32px;
+  }
+
+  .mobile-detail-back {
+    display: block;
   }
 
   .main-layout.is-meeting-rules .month-detail-scroll,
@@ -1353,14 +1501,16 @@ button:disabled {
   }
 
   .detail-hero {
-    grid-template-columns: minmax(48px, 64px) minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: var(--mobile-detail-cover-width) minmax(0, 1fr);
+    gap: 12px;
     margin-top: 14px;
     max-width: 100%;
   }
 
   .detail-cover-stage {
-    max-height: 96px;
+    width: var(--mobile-detail-cover-width);
+    max-width: var(--mobile-detail-cover-width);
+    max-height: var(--mobile-detail-cover-height);
     min-height: 0;
     margin-bottom: 0;
   }
@@ -1374,20 +1524,20 @@ button:disabled {
 
   .month-detail-cover {
     max-width: none;
-    max-height: 96px;
+    max-height: var(--mobile-detail-cover-height);
   }
 
   .month-detail-cover.cover-fallback {
     height: auto;
-    font-size: 2rem;
+    font-size: 2.6rem;
   }
 
   .cover-edit-btn {
     top: 5px;
     left: 5px;
-    min-height: 22px;
-    padding: 0 8px;
-    font-size: 0.48rem;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: var(--mobile-year-title-size);
   }
 
   .detail-eyebrow {
@@ -1404,7 +1554,7 @@ button:disabled {
   }
 
   .month-detail-title {
-    font-size: 0.82rem;
+    font-size: var(--mobile-year-title-size);
     line-height: 1.14;
     max-height: 3.42em;
     -webkit-line-clamp: 3;
@@ -1412,7 +1562,7 @@ button:disabled {
 
   .month-detail-authors {
     margin-top: 6px;
-    font-size: 0.65rem;
+    font-size: var(--mobile-year-title-size);
     line-height: 1.25;
   }
 
@@ -1424,7 +1574,7 @@ button:disabled {
   }
 
   .detail-rating-row .star-rating {
-    font-size: 0.82rem;
+    font-size: var(--mobile-year-title-size);
   }
 
   .review-display-row {
@@ -1455,10 +1605,11 @@ button:disabled {
 
   .meeting-permission-copy {
     margin-top: 14px;
-    font-size: 0.72rem;
+    font-size: var(--mobile-year-title-size);
     line-height: 1.35;
   }
 
+  .meeting-rules-page,
   .meeting-active-page {
     align-items: flex-start;
     justify-content: flex-start;
@@ -1475,7 +1626,7 @@ button:disabled {
   }
 
   .magazine-summary-label {
-    font-size: 1rem;
+    font-size: var(--mobile-year-title-size);
   }
 
   .magazine-summary-copy {
@@ -1555,11 +1706,11 @@ button:disabled {
   }
 
   .search-result-text strong {
-    font-size: 1rem;
+    font-size: var(--mobile-year-title-size);
   }
 
   .search-result-text span {
-    font-size: 0.78rem;
+    font-size: var(--mobile-year-title-size);
   }
 }
 

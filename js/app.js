@@ -1,6 +1,7 @@
 // js/app.js
 import { showScreen } from './screens.js';
 import {
+  createClub,
   subscribeBooks,
   addBook,
   updateBook,
@@ -40,6 +41,65 @@ let monthSearch = {
 let meetingLevel = 'quiet';
 let meetingWarningVisible = false;
 let meetingPermissionMessage = '';
+let mobilePage = 'calendar';
+let currentClubId = getClubIdFromUrl();
+let unsubscribeBooks = null;
+let generatedInviteLink = '';
+let hasEnteredMain = false;
+
+function getClubIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const clubId = params.get('club') || '';
+  const trimmedClubId = clubId.trim();
+  return /^[A-Za-z0-9_-]{8,80}$/.test(trimmedClubId) ? trimmedClubId : '';
+}
+
+function buildInviteUrl(clubId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('club', clubId);
+  return url.toString();
+}
+
+function showClubGate() {
+  setLogoMode('splash');
+  document.getElementById('club-gate')?.classList.remove('hidden');
+  showScreen('screen-splash');
+}
+
+async function copyInviteLink() {
+  if (!generatedInviteLink) return;
+
+  try {
+    await navigator.clipboard.writeText(generatedInviteLink);
+  } catch (err) {
+    const input = document.getElementById('club-invite-link');
+    input?.select();
+    document.execCommand('copy');
+  }
+
+  document.getElementById('club-copy-guide')?.classList.remove('hidden');
+}
+
+async function handleClubCreate(event) {
+  event.preventDefault();
+
+  const input = document.getElementById('club-name-input');
+  const button = document.getElementById('club-create-btn');
+  const name = input.value.trim();
+  if (!name) return;
+
+  button.disabled = true;
+  try {
+    const clubId = await createClub(name);
+    generatedInviteLink = buildInviteUrl(clubId);
+    document.getElementById('club-invite-link').value = generatedInviteLink;
+    document.getElementById('club-create-form')?.classList.add('hidden');
+    document.getElementById('club-invite-result')?.classList.remove('hidden');
+  } catch (err) {
+    alert(err?.message || '초대 링크를 만들지 못했습니다. 다시 시도해주세요.');
+    button.disabled = false;
+  }
+}
 
 function setLogoMode(mode) {
   const logo = document.getElementById('app-logo');
@@ -48,6 +108,7 @@ function setLogoMode(mode) {
 }
 
 function syncLogoMode() {
+  if (!hasEnteredMain) return;
   setLogoMode('docked');
 }
 
@@ -66,10 +127,14 @@ function syncMainLayoutState() {
   if (!layout) return;
 
   const isMeetingScreen = mainView === 'meeting-rules' || mainView === 'meeting-active';
+  const isMobileDetailPage = !isMeetingScreen && mobilePage === 'detail';
   layout.classList.toggle('is-meeting-rules', mainView === 'meeting-rules');
   layout.classList.toggle('is-meeting-active', mainView === 'meeting-active');
+  layout.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   document.body.classList.toggle('is-meeting-screen', isMeetingScreen);
+  document.body.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   document.getElementById('screen-main')?.classList.toggle('is-meeting-screen', isMeetingScreen);
+  document.getElementById('screen-main')?.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   updateMeetingLevelClass();
 }
 
@@ -91,6 +156,7 @@ async function startSplashAnimation() {
     });
   }
   setTimeout(() => {
+    hasEnteredMain = true;
     setLogoMode('docked');
     setTimeout(() => showScreen('screen-main'), 800);
   }, 1200);
@@ -100,6 +166,7 @@ function handleAddClick(period) {
   if (period) selectedPeriod = period;
   currentBookId = null;
   editingBookId = null;
+  mobilePage = 'calendar';
   mainView = 'search';
   monthSearch = {
     query: '',
@@ -131,10 +198,12 @@ function renderMain() {
     meetingLevel,
     meetingWarningVisible,
     meetingPermissionMessage,
+    mobilePage,
     onMonthSelect(period) {
       selectedPeriod = period;
       currentBookId = null;
       editingBookId = null;
+      mobilePage = 'detail';
       mainView = 'detail';
       meetingWarningVisible = false;
       meetingPermissionMessage = '';
@@ -144,6 +213,7 @@ function renderMain() {
       selectedPeriod = clampPeriod(year, selectedPeriod.month);
       currentBookId = null;
       editingBookId = null;
+      mobilePage = 'calendar';
       mainView = 'detail';
       meetingWarningVisible = false;
       meetingPermissionMessage = '';
@@ -154,6 +224,19 @@ function renderMain() {
     onSearchClose() {
       mainView = mainView === 'edit-search' ? 'book-edit' : 'detail';
       editingBookId = null;
+      renderMain();
+    },
+    onMobileBack() {
+      mobilePage = 'calendar';
+      editingBookId = null;
+      if (
+        mainView === 'book-edit'
+        || mainView === 'edit-search'
+        || mainView === 'review-entry'
+        || mainView === 'analysis-loading'
+      ) {
+        mainView = 'detail';
+      }
       renderMain();
     },
     onSearchResult: addSearchResultToMonth,
@@ -206,6 +289,8 @@ async function handleMonthSearch(query) {
 }
 
 async function addSearchResultToMonth(book) {
+  if (!currentClubId) return null;
+
   const readMonth = selectedPeriod.month;
   const periodData = {
     readYear: selectedPeriod.year,
@@ -227,12 +312,13 @@ async function addSearchResultToMonth(book) {
       recordingUrl: existingBook?.recordingUrl || '',
     };
 
-    await updateBook(bookId, replacement);
+    await updateBook(currentClubId, bookId, replacement);
     allBooks = allBooks.map((entry) => (
       entry.id === bookId ? { ...entry, ...replacement } : entry
     ));
     currentBookId = bookId;
     editingBookId = null;
+    mobilePage = 'detail';
     mainView = 'book-edit';
     monthSearch = {
       query: '',
@@ -244,13 +330,14 @@ async function addSearchResultToMonth(book) {
     return bookId;
   }
 
-  const bookId = await addBook({
+  const bookId = await addBook(currentClubId, {
     ...book,
     ...periodData,
   });
 
   currentBookId = bookId;
   mainView = 'detail';
+  mobilePage = 'detail';
   monthSearch = {
     query: '',
     status: 'idle',
@@ -264,6 +351,7 @@ async function addSearchResultToMonth(book) {
 function openBookEdit(bookId) {
   currentBookId = bookId;
   editingBookId = null;
+  mobilePage = 'detail';
   mainView = 'book-edit';
   monthSearch = {
     query: '',
@@ -277,6 +365,7 @@ function openBookEdit(bookId) {
 function openBookCoverSearch(bookId) {
   currentBookId = bookId;
   editingBookId = bookId;
+  mobilePage = 'detail';
   mainView = 'edit-search';
   monthSearch = {
     query: '',
@@ -294,10 +383,11 @@ async function deleteSelectedBook(bookId) {
   if (!window.confirm(`${title}을(를) 삭제할까요?`)) return;
 
   try {
-    await deleteBook(bookId);
+    await deleteBook(currentClubId, bookId);
     allBooks = allBooks.filter((entry) => entry.id !== bookId);
     if (currentBookId === bookId) currentBookId = null;
     if (editingBookId === bookId) editingBookId = null;
+    mobilePage = 'calendar';
     mainView = 'detail';
     monthSearch = {
       query: '',
@@ -403,11 +493,23 @@ async function finishMeeting(event) {
 }
 
 async function runAnalysis(blob) {
-  showScreen('screen-analyzing');
+  if (!blob?.size) {
+    alert('녹음본 파일이 비어 있습니다. 다시 녹음하거나 다른 음성 파일을 올려주세요.');
+    return;
+  }
+
+  const book = allBooks.find((b) => b.id === currentBookId);
+  let recording = null;
+
+  mainView = 'analysis-loading';
+  mobilePage = 'detail';
+  renderMain();
+  showScreen('screen-main');
+
   try {
-    const book = allBooks.find((b) => b.id === currentBookId);
-    const recording = await uploadRecording(currentBookId, blob);
+    recording = await uploadRecording(currentClubId, currentBookId, blob);
     const analysis = await analyzeRecording({
+      clubId: currentClubId,
       bookId: currentBookId,
       storagePath: recording.path,
       recordingUrl: recording.url,
@@ -428,6 +530,7 @@ async function runAnalysis(blob) {
       reviews: analysis.reviews || [],
       avgRating: Number(analysis.avgRating || 0),
       participantCount: Number(analysis.participantCount || 0),
+      analysisError: '',
       analysisMeta: analysis.analysisMeta || null,
     };
     allBooks = allBooks.map((entry) => (
@@ -436,10 +539,51 @@ async function runAnalysis(blob) {
         : entry
     ));
     mainView = 'review-entry';
+    mobilePage = 'detail';
     renderMain();
     showScreen('screen-main');
   } catch (err) {
-    alert('분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+    const message = (err?.message || '').trim() || '다시 시도해주세요.';
+
+    if (recording && currentBookId) {
+      const manualUpdate = {
+        recordingUrl: recording.url,
+        recordingPath: recording.path,
+        summary: book?.summary || '',
+        status: 'reviewing',
+        reviews: book?.reviews || [],
+        avgRating: Number(book?.avgRating || 0),
+        participantCount: Number(book?.participantCount || 0),
+        analysisError: message,
+        analysisMeta: {
+          ...(book?.analysisMeta || {}),
+          analysisFailed: true,
+          analysisError: message,
+        },
+      };
+
+      try {
+        await updateBook(currentClubId, currentBookId, manualUpdate);
+      } catch (saveErr) {
+        console.warn('Failed to save manual analysis state', saveErr);
+      }
+
+      allBooks = allBooks.map((entry) => (
+        entry.id === currentBookId
+          ? { ...entry, ...manualUpdate }
+          : entry
+      ));
+      alert(`AI 분석에 실패해서 직접 작성 화면으로 이동합니다.\n${message}`);
+      mainView = 'review-entry';
+      mobilePage = 'detail';
+      renderMain();
+      showScreen('screen-main');
+      return;
+    }
+
+    alert(`분석 중 오류가 발생했습니다.\n${message}`);
+    mainView = 'detail';
+    renderMain();
     showScreen('screen-main');
     throw err;
   }
@@ -451,20 +595,22 @@ async function saveEditedBookContent(bookId, summary, reviews) {
   const status = trimmedSummary || reviews.length > 0 ? 'analyzed' : 'pending';
 
   try {
-    await updateBook(bookId, {
+    await updateBook(currentClubId, bookId, {
       summary: trimmedSummary,
       reviews,
       avgRating,
       participantCount: reviews.length,
       status,
+      analysisError: '',
     });
 
     allBooks = allBooks.map((book) => (
       book.id === bookId
-        ? { ...book, summary: trimmedSummary, reviews, avgRating, participantCount: reviews.length, status }
+        ? { ...book, summary: trimmedSummary, reviews, avgRating, participantCount: reviews.length, status, analysisError: '' }
         : book
     ));
     currentBookId = bookId;
+    mobilePage = 'detail';
     mainView = 'detail';
     renderMain();
     showScreen('screen-main');
@@ -473,27 +619,33 @@ async function saveEditedBookContent(bookId, summary, reviews) {
   }
 }
 
-async function saveMagazineReviews(bookId, reviews) {
-  if (reviews.length === 0) {
-    alert('리뷰를 한 줄 이상 입력해주세요.');
+async function saveMagazineReviews(bookId, reviews, summary = '') {
+  const currentBook = allBooks.find((book) => book.id === bookId);
+  const trimmedSummary = (summary || currentBook?.summary || '').trim();
+
+  if (reviews.length === 0 && !trimmedSummary) {
+    alert('요약이나 리뷰를 한 줄 이상 입력해주세요.');
     return;
   }
 
   try {
     const avgRating = calcAverage(reviews);
-    await updateBook(bookId, {
+    await updateBook(currentClubId, bookId, {
       status: 'analyzed',
+      summary: trimmedSummary,
       reviews,
       avgRating,
       participantCount: reviews.length,
+      analysisError: '',
     });
 
     allBooks = allBooks.map((book) => (
       book.id === bookId
-        ? { ...book, status: 'analyzed', reviews, avgRating, participantCount: reviews.length }
+        ? { ...book, status: 'analyzed', summary: trimmedSummary, reviews, avgRating, participantCount: reviews.length, analysisError: '' }
         : book
     ));
     currentBookId = bookId;
+    mobilePage = 'detail';
     mainView = 'detail';
     renderMain();
     showScreen('screen-main');
@@ -502,14 +654,18 @@ async function saveMagazineReviews(bookId, reviews) {
   }
 }
 
-subscribeBooks((books) => {
-  allBooks = books;
-  renderMain();
-  if (currentBookId) {
-    const updated = books.find((b) => b.id === currentBookId);
-    if (updated) renderBookDetail(updated);
-  }
-});
+function subscribeCurrentClub() {
+  if (!currentClubId || unsubscribeBooks) return;
+
+  unsubscribeBooks = subscribeBooks(currentClubId, (books) => {
+    allBooks = books;
+    renderMain();
+    if (currentBookId) {
+      const updated = books.find((b) => b.id === currentBookId);
+      if (updated) renderBookDetail(updated);
+    }
+  });
+}
 
 document.getElementById('search-close-btn').addEventListener('click', () => {
   mainView = 'detail';
@@ -577,4 +733,13 @@ document.getElementById('upload-file-input').addEventListener('change', async (e
   }
 });
 
-startSplashAnimation();
+document.getElementById('club-create-form')?.addEventListener('submit', handleClubCreate);
+document.getElementById('club-copy-btn')?.addEventListener('click', copyInviteLink);
+
+if (currentClubId) {
+  subscribeCurrentClub();
+  renderMain();
+  startSplashAnimation();
+} else {
+  showClubGate();
+}

@@ -124,10 +124,12 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
   if (!book) cell.classList.add('is-empty');
   if (isFuture) cell.classList.add('is-future');
 
-  const label = document.createElement('span');
-  label.className = 'month-label';
-  label.textContent = `${month}월`;
-  cell.appendChild(label);
+  if (!isFuture) {
+    const label = document.createElement('span');
+    label.className = 'month-label';
+    label.textContent = `${month}월`;
+    cell.appendChild(label);
+  }
 
   if (book) {
     const coverWrap = document.createElement('span');
@@ -141,7 +143,7 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
   } else {
     const empty = document.createElement('span');
     empty.className = 'month-empty';
-    empty.textContent = isFuture ? '' : '+';
+    empty.textContent = '';
     cell.appendChild(empty);
   }
 
@@ -161,9 +163,19 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   const topbar = document.createElement('div');
   topbar.className = 'detail-topbar';
 
+  const left = document.createElement('div');
+  left.className = 'detail-top-left';
+
+  const backButton = document.createElement('button');
+  backButton.className = 'mobile-detail-back';
+  backButton.type = 'button';
+  backButton.setAttribute('aria-label', '달력으로 돌아가기');
+  backButton.addEventListener('click', () => handlers.onMobileBack?.());
+
   const eyebrow = document.createElement('p');
   eyebrow.className = 'detail-eyebrow';
   eyebrow.textContent = `${selectedPeriod.year}년 ${selectedPeriod.month}월`;
+  left.append(backButton, eyebrow);
 
   const actions = document.createElement('div');
   actions.className = 'detail-top-actions';
@@ -185,7 +197,7 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   deleteButton.addEventListener('click', () => handlers.onDeleteBook?.(book.id));
 
   actions.append(editButton, divider, deleteButton);
-  topbar.append(eyebrow, actions);
+  topbar.append(left, actions);
   return topbar;
 }
 
@@ -259,6 +271,18 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
     });
     reviews.appendChild(reviewList);
     scroll.appendChild(reviews);
+  } else if (handlers.view === 'analysis-loading') {
+    const actions = document.createElement('div');
+    actions.className = 'month-detail-actions month-detail-analysis';
+
+    const loading = document.createElement('p');
+    loading.className = 'month-analysis-copy';
+    loading.textContent = '분석중';
+    loading.setAttribute('role', 'status');
+    loading.setAttribute('aria-live', 'polite');
+
+    actions.appendChild(loading);
+    scroll.appendChild(actions);
   } else {
     const actions = document.createElement('div');
     actions.className = 'month-detail-actions';
@@ -458,9 +482,20 @@ function renderReviewEntry(detail, book, selectedPeriod, handlers) {
   summaryTitle.className = 'magazine-summary-label';
   summaryTitle.textContent = '모임 요약';
 
-  const summary = document.createElement('p');
-  summary.className = 'magazine-summary-copy';
-  summary.textContent = book.summary || '요약이 아직 없습니다.';
+  const needsManualSummary = Boolean(book.analysisError) || !book.summary;
+  const summary = needsManualSummary
+    ? document.createElement('textarea')
+    : document.createElement('p');
+  summary.className = needsManualSummary
+    ? 'magazine-summary-input magazine-summary-manual'
+    : 'magazine-summary-copy';
+  if (needsManualSummary) {
+    summary.value = book.summary || '';
+    summary.placeholder = '모임 요약';
+    summary.setAttribute('aria-label', '모임 요약');
+  } else {
+    summary.textContent = book.summary;
+  }
 
   const form = document.createElement('form');
   form.className = 'magazine-review-form';
@@ -488,7 +523,11 @@ function renderReviewEntry(detail, book, selectedPeriod, handlers) {
   form.appendChild(actions);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    handlers.onReviewSave(book.id, collectMagazineReviews(form));
+    handlers.onReviewSave(
+      book.id,
+      collectMagazineReviews(form),
+      needsManualSummary ? summary.value : book.summary,
+    );
   });
 
   magazine.append(summaryTitle, summary, form);
@@ -528,10 +567,7 @@ function renderSearchModal(selectedPeriod, searchState, handlers) {
   eyebrow.className = 'detail-eyebrow';
   eyebrow.textContent = monthTitle;
 
-  const title = document.createElement('h1');
-  title.className = 'month-detail-title';
-  title.textContent = '책 찾기';
-  header.append(eyebrow, title);
+  header.appendChild(eyebrow);
 
   const form = document.createElement('form');
   form.className = 'month-search-form';
@@ -646,19 +682,27 @@ function createMeetingCopy({
   const rules = createMeetingRulesList();
   copy.append(title, rules);
 
+  const prompt = document.createElement('p');
+  prompt.className = 'meeting-consent-copy';
+  prompt.textContent = '동의하시겠습니까?';
+
+  const confirmButton = document.createElement('button');
+  confirmButton.className = 'detail-action-primary meeting-confirm-btn';
+  confirmButton.type = 'button';
+  confirmButton.textContent = '확인';
+
   if (includeConsent) {
-    const prompt = document.createElement('p');
-    prompt.className = 'meeting-consent-copy';
-    prompt.textContent = '동의하시겠습니까?';
-
-    const confirmButton = document.createElement('button');
-    confirmButton.className = 'detail-action-primary meeting-confirm-btn';
-    confirmButton.type = 'button';
-    confirmButton.textContent = '확인';
     confirmButton.addEventListener('click', onConfirm);
-
-    copy.append(prompt, confirmButton);
+  } else {
+    prompt.classList.add('meeting-consent-placeholder');
+    confirmButton.classList.add('meeting-consent-placeholder');
+    confirmButton.disabled = true;
+    confirmButton.tabIndex = -1;
+    prompt.setAttribute('aria-hidden', 'true');
+    confirmButton.setAttribute('aria-hidden', 'true');
   }
+
+  copy.append(prompt, confirmButton);
 
   if (notice) {
     const noticeCopy = document.createElement('p');
