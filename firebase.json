@@ -1,0 +1,10 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "bucket": "reading-club-284ae.firebasestorage.app",
+    "rules": "storage.rules"
+  }
+}
