@@ -4,9 +4,15 @@ import { subscribeBooks, addBook } from './firebase.js';
 import { renderBookSlider } from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { renderBookDetail } from './bookDetail.js';
+import { DecibelMonitor } from './decibelMonitor.js';
+
+const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 
 let currentBookId = null;
 let allBooks = [];
+let meetingStream = null;
+let decibelMonitor = null;
+let loudSinceMs = null;
 
 function startSplashAnimation() {
   const logo = document.querySelector('.splash-logo');
@@ -79,3 +85,32 @@ document.getElementById('search-btn').addEventListener('click', async () => {
     resultsEl.appendChild(li);
   });
 });
+
+function handleDecibelLevel(level) {
+  document.getElementById('meeting-bg').style.backgroundColor = LEVEL_COLORS[level];
+  const warningEl = document.getElementById('meeting-warning');
+
+  if (level === 'loud') {
+    if (loudSinceMs === null) loudSinceMs = Date.now();
+    if (Date.now() - loudSinceMs > 3000) {
+      warningEl.classList.remove('hidden');
+    }
+  } else {
+    loudSinceMs = null;
+    warningEl.classList.add('hidden');
+  }
+}
+
+async function startMeeting() {
+  try {
+    meetingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    alert('마이크 권한이 필요합니다. 대신 "녹음본 업로드"를 이용해주세요.');
+    return;
+  }
+
+  decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
+  showScreen('screen-meeting');
+}
+
+document.getElementById('start-meeting-btn').addEventListener('click', startMeeting);
