@@ -26,6 +26,7 @@ body {
   z-index: 100;
   transition: top 0.8s ease, width 0.8s ease;
   transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 #app-logo.logo-splash {
@@ -40,11 +41,6 @@ body {
 
 #app-logo.logo-hidden {
   display: none;
-}
-
-#screen-splash {
-  align-items: center;
-  justify-content: center;
 }
 
 .book-slider {
@@ -174,4 +170,13 @@ body {
   font-size: 1.5rem;
   color: white;
   font-weight: bold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book.page-turn {
+    animation: none;
+  }
+  #app-logo {
+    transition: none;
+  }
 }

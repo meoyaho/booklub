@@ -20,8 +20,14 @@ let currentRecorder = null;
 let loudSinceMs = null;
 let uploadedFile = null;
 
-function startSplashAnimation() {
+async function startSplashAnimation() {
   const logo = document.getElementById('app-logo');
+  if (!logo.complete) {
+    await new Promise((resolve) => {
+      logo.onload = resolve;
+      logo.onerror = resolve;
+    });
+  }
   setTimeout(() => {
     logo.classList.remove('logo-splash');
     logo.classList.add('logo-docked');

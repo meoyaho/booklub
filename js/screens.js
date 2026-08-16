@@ -5,10 +5,12 @@ export function showScreen(screenId) {
   });
 
   const logo = document.getElementById('app-logo');
-  if (screenId === 'screen-main') {
-    logo.classList.remove('logo-hidden');
-  } else if (screenId !== 'screen-splash') {
-    logo.classList.add('logo-hidden');
+  if (logo) {
+    if (screenId === 'screen-main') {
+      logo.classList.remove('logo-hidden');
+    } else if (screenId !== 'screen-splash') {
+      logo.classList.add('logo-hidden');
+    }
   }
 
   const activeScreen = document.getElementById(screenId);
