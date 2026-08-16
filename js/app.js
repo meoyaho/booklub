@@ -3,6 +3,10 @@ import { showScreen } from './screens.js';
 import { subscribeBooks, addBook } from './firebase.js';
 import { renderBookSlider } from './bookSlider.js';
 import { searchBooks } from './search.js';
+import { renderBookDetail } from './bookDetail.js';
+
+let currentBookId = null;
+let allBooks = [];
 
 function startSplashAnimation() {
   const logo = document.querySelector('.splash-logo');
@@ -13,8 +17,10 @@ function startSplashAnimation() {
 }
 
 function handleBookClick(bookId) {
-  // Task 7에서 상세 화면 렌더링 로직 연결
-  console.log('book clicked', bookId);
+  currentBookId = bookId;
+  const book = allBooks.find((b) => b.id === bookId);
+  if (book) renderBookDetail(book);
+  showScreen('screen-detail');
 }
 
 function handleAddClick() {
@@ -22,10 +28,21 @@ function handleAddClick() {
 }
 
 subscribeBooks((books) => {
+  allBooks = books;
   renderBookSlider(books, handleBookClick, handleAddClick);
+
+  if (currentBookId) {
+    const updated = books.find((b) => b.id === currentBookId);
+    if (updated) renderBookDetail(updated);
+  }
 });
 
 startSplashAnimation();
+
+document.getElementById('detail-back-btn').addEventListener('click', () => {
+  currentBookId = null;
+  showScreen('screen-main');
+});
 
 document.getElementById('search-close-btn').addEventListener('click', () => {
   showScreen('screen-main');
