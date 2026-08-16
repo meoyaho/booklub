@@ -21,9 +21,10 @@ let loudSinceMs = null;
 let uploadedFile = null;
 
 function startSplashAnimation() {
-  const logo = document.querySelector('.splash-logo');
+  const logo = document.getElementById('app-logo');
   setTimeout(() => {
-    logo.classList.add('rise');
+    logo.classList.remove('logo-splash');
+    logo.classList.add('logo-docked');
     setTimeout(() => showScreen('screen-main'), 800);
   }, 1200);
 }
