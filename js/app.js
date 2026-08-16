@@ -7,6 +7,8 @@ import { renderBookDetail } from './bookDetail.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
 import { generateMockSummary } from './mockAnalysis.js';
+import { renderReviewsForm, collectReviews } from './reviewsForm.js';
+import { calcAverage } from './ratings.js';
 
 const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 
@@ -156,4 +158,34 @@ document.getElementById('upload-file-input').addEventListener('change', (e) => {
 document.getElementById('upload-confirm-btn').addEventListener('click', async () => {
   if (!uploadedFile) return;
   await runAnalysis(uploadedFile);
+});
+
+document.getElementById('summary-continue-btn').addEventListener('click', () => {
+  showScreen('screen-participant-count');
+});
+
+document.getElementById('participant-count-confirm').addEventListener('click', () => {
+  const count = Number(document.getElementById('participant-count-input').value);
+  if (!count || count < 1) {
+    alert('1명 이상의 인원수를 입력해주세요.');
+    return;
+  }
+  renderReviewsForm(count);
+  showScreen('screen-reviews-form');
+});
+
+document.getElementById('reviews-save-btn').addEventListener('click', async () => {
+  const reviews = collectReviews();
+  const avgRating = calcAverage(reviews);
+  const participantCount = reviews.length;
+
+  await updateBook(currentBookId, {
+    status: 'analyzed',
+    reviews,
+    avgRating,
+    participantCount,
+  });
+
+  currentBookId = null;
+  showScreen('screen-main');
 });
