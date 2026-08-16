@@ -480,7 +480,7 @@ function renderReviewEntry(detail, book, selectedPeriod, handlers) {
 
   const summaryTitle = document.createElement('p');
   summaryTitle.className = 'magazine-summary-label';
-  summaryTitle.textContent = '모임 요약';
+  summaryTitle.textContent = '요약';
 
   const needsManualSummary = Boolean(book.analysisError) || !book.summary;
   const summary = needsManualSummary
@@ -491,8 +491,8 @@ function renderReviewEntry(detail, book, selectedPeriod, handlers) {
     : 'magazine-summary-copy';
   if (needsManualSummary) {
     summary.value = book.summary || '';
-    summary.placeholder = '모임 요약';
-    summary.setAttribute('aria-label', '모임 요약');
+    summary.placeholder = '요약';
+    summary.setAttribute('aria-label', '요약');
   } else {
     summary.textContent = book.summary;
   }
@@ -726,23 +726,25 @@ function createMeetingRulesList() {
   return rules;
 }
 
+function createInlineLogo() {
+  const logo = document.createElement('img');
+  logo.className = 'inline-app-logo';
+  logo.src = 'assets/logo.png';
+  logo.alt = '책좀읽읍시다';
+  return logo;
+}
+
 function renderMeetingLeft(container, handlers) {
   const panel = document.createElement('div');
   panel.className = 'meeting-left-panel desktop-meeting-copy';
+  panel.appendChild(createInlineLogo());
+
   panel.appendChild(createMeetingCopy({
     includeConsent: handlers.view === 'meeting-rules',
     onConfirm: handlers.onMeetingConsent,
     notice: handlers.meetingPermissionMessage,
   }));
 
-  const warning = document.createElement('p');
-  warning.className = 'meeting-left-warning';
-  warning.textContent = '건강한 독서모임을 응원합니다';
-  warning.setAttribute('aria-live', 'polite');
-  if (handlers.meetingLevel !== 'loud') {
-    warning.classList.add('hidden');
-  }
-  panel.appendChild(warning);
   container.appendChild(panel);
 }
 
@@ -754,13 +756,21 @@ function renderMeetingActive(detail, handlers) {
 
   const copy = createMeetingCopy({ className: 'mobile-meeting-copy' });
 
+  const warning = document.createElement('p');
+  warning.className = 'meeting-warning-banner';
+  warning.textContent = '건강한 독서모임을 응원합니다';
+  warning.setAttribute('aria-live', 'polite');
+  if (handlers.meetingLevel !== 'loud') {
+    warning.classList.add('hidden');
+  }
+
   const finishButton = document.createElement('button');
   finishButton.className = 'detail-action-primary meeting-finish-btn';
   finishButton.type = 'button';
   finishButton.textContent = '완료';
   finishButton.addEventListener('click', handlers.onMeetingFinish);
 
-  page.append(copy, finishButton);
+  page.append(copy, warning, finishButton);
   detail.appendChild(page);
 }
 
@@ -790,6 +800,10 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
     renderMeetingActive(detail, handlers);
     return;
   }
+
+  const stack = document.createElement('div');
+  stack.className = 'main-left-stack';
+  stack.appendChild(createInlineLogo());
 
   const board = document.createElement('section');
   board.className = 'month-board';
@@ -825,7 +839,8 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   });
 
   board.appendChild(grid);
-  container.appendChild(board);
+  stack.appendChild(board);
+  container.appendChild(stack);
 
   renderMonthDetail(detail, selectedBook, selectedPeriod, handlers);
   if (handlers.view === 'search' || handlers.view === 'edit-search') {

@@ -143,8 +143,8 @@ function setMeetingWarningVisible(visible) {
   document.getElementById('meeting-warning')?.classList.toggle('hidden', !visible);
 }
 
-function setMeetingLeftWarningVisible(visible) {
-  document.querySelector('.meeting-left-warning')?.classList.toggle('hidden', !visible);
+function setMeetingWarningBannerVisible(visible) {
+  document.querySelector('.meeting-warning-banner')?.classList.toggle('hidden', !visible);
 }
 
 async function startSplashAnimation() {
@@ -412,7 +412,7 @@ function openUploadScreen(bookId = currentBookId) {
 function handleDecibelLevel(level) {
   meetingLevel = level;
   updateMeetingLevelClass(level);
-  setMeetingLeftWarningVisible(level === 'loud');
+  setMeetingWarningBannerVisible(level === 'loud');
 
   if (level === 'loud') {
     if (loudSinceMs === null) loudSinceMs = Date.now();

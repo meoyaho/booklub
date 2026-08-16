@@ -114,7 +114,7 @@
   <section id="screen-summary" class="screen book-screen">
     <div class="book">
       <div class="book-page">
-        <h3>모임 요약</h3>
+        <h3>요약</h3>
         <p id="summary-text"></p>
         <button id="summary-continue-btn">다음</button>
       </div>

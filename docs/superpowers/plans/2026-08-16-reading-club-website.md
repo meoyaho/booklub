@@ -436,7 +436,7 @@ git commit -m "feat: add firebase data layer for books and recordings"
   </section>
 
   <section id="screen-summary" class="screen">
-    <h3>모임 요약</h3>
+    <h3>요약</h3>
     <p id="summary-text"></p>
     <button id="summary-continue-btn">다음</button>
   </section>

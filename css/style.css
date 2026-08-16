@@ -226,17 +226,27 @@ button {
 
 .book-slider {
   display: flex;
-  align-items: flex-end;
   width: 100%;
   height: 100%;
-  padding: 3vw 7vw 3vw 3vw;
+  padding: 26px 7vw 3vw 3vw;
+  overflow-y: auto;
 }
 
 .book-slider.is-meeting-left {
   position: relative;
+  align-items: safe flex-start;
+  justify-content: safe center;
+  padding: 26px 7vw 3vw 3vw;
+  overflow-y: auto;
+}
+
+.main-left-stack {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 0;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 100%;
 }
 
 .mobile-meeting-copy {
@@ -244,12 +254,21 @@ button {
 }
 
 .meeting-left-panel {
-  position: absolute;
-  left: 4vw;
-  right: 7vw;
-  bottom: 3vw;
+  width: 100%;
   max-width: 560px;
   color: inherit;
+}
+
+.inline-app-logo {
+  display: block;
+  width: clamp(280px, 30vw, 420px);
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 24px;
+}
+
+body:has(#screen-main.active) #app-logo {
+  display: none;
 }
 
 .meeting-left-panel .meeting-title {
@@ -261,12 +280,12 @@ button {
   font-size: clamp(1rem, 1.35vw, 1.45rem);
 }
 
-.meeting-left-warning {
-  margin-top: 24px;
+.meeting-warning-banner {
+  max-width: 560px;
   color: inherit;
   font-size: clamp(1.25rem, 2.1vw, 2.3rem);
   line-height: 1.35;
-  text-align: left;
+  text-align: center;
   word-break: keep-all;
 }
 
@@ -1227,6 +1246,10 @@ button:disabled {
 }
 
 @media (max-width: 760px) {
+  .main-left-stack .inline-app-logo {
+    display: none;
+  }
+
   :root {
     --mobile-year-title-size: 1.12rem;
     --detail-copy-size: var(--mobile-year-title-size);
@@ -1279,6 +1302,10 @@ button:disabled {
     transform: translateX(-50%);
   }
 
+  body:has(#screen-main.active) #app-logo {
+    display: block;
+  }
+
   body {
     font-size: var(--mobile-year-title-size);
     height: 100svh;
@@ -1327,10 +1354,19 @@ button:disabled {
 
   .main-layout.is-meeting-rules,
   .main-layout.is-meeting-active {
-    grid-template-rows: var(--mobile-meeting-logo-row) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     height: 100svh;
     min-height: 100svh;
     overflow: hidden;
+  }
+
+  .main-layout.is-meeting-rules .main-left,
+  .main-layout.is-meeting-active .main-left {
+    display: none;
+  }
+
+  body:has(#screen-main.active.is-meeting-screen) #app-logo {
+    display: none;
   }
 
   .main-left {
@@ -1380,14 +1416,14 @@ button:disabled {
     padding: 0 16px;
   }
 
-  .meeting-left-warning {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 6px;
-    max-width: 340px;
-    margin: 0 auto;
+  .meeting-warning-banner {
+    text-align: left;
     font-size: var(--mobile-year-title-size);
+  }
+
+  .main-left-stack {
+    height: 100%;
+    min-height: 0;
   }
 
   .month-board {
@@ -1489,7 +1525,7 @@ button:disabled {
   .main-layout.is-meeting-active .month-detail-scroll {
     height: 100%;
     min-height: 0;
-    padding: 0 16px 16px;
+    padding: 24px 16px 16px;
     overflow: hidden;
   }
 
