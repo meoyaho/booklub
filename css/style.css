@@ -31,12 +31,12 @@ body {
 
 #app-logo.logo-splash {
   top: 50%;
-  width: 280px;
+  width: 560px;
 }
 
 #app-logo.logo-docked {
-  top: 56px;
-  width: 96px;
+  top: 90px;
+  width: 192px;
 }
 
 #app-logo.logo-hidden {
