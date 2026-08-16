@@ -1,10 +1,12 @@
 // js/app.js
 import { showScreen } from './screens.js';
-import { subscribeBooks, addBook } from './firebase.js';
+import { subscribeBooks, addBook, uploadRecording, updateBook } from './firebase.js';
 import { renderBookSlider } from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { renderBookDetail } from './bookDetail.js';
 import { DecibelMonitor } from './decibelMonitor.js';
+import { Recorder } from './recorder.js';
+import { generateMockSummary } from './mockAnalysis.js';
 
 const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 
@@ -13,6 +15,7 @@ let allBooks = [];
 let meetingStream = null;
 let decibelMonitor = null;
 let loudSinceMs = null;
+let currentRecorder = null;
 
 function startSplashAnimation() {
   const logo = document.querySelector('.splash-logo');
@@ -110,7 +113,47 @@ async function startMeeting() {
   }
 
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
+  currentRecorder = new Recorder(meetingStream);
   showScreen('screen-meeting');
 }
 
+async function runAnalysis(blob) {
+  showScreen('screen-analyzing');
+
+  const recordingUrl = await uploadRecording(currentBookId, blob);
+  const book = allBooks.find((b) => b.id === currentBookId);
+  const summary = generateMockSummary(book ? book.title : '');
+
+  await updateBook(currentBookId, { recordingUrl, summary });
+
+  document.getElementById('summary-text').textContent = summary;
+  showScreen('screen-summary');
+}
+
 document.getElementById('start-meeting-btn').addEventListener('click', startMeeting);
+
+document.getElementById('meeting-finish-btn').addEventListener('click', async () => {
+  decibelMonitor.stop();
+  meetingStream.getTracks().forEach((t) => t.stop());
+  const blob = await currentRecorder.stop();
+  await runAnalysis(blob);
+});
+
+document.getElementById('upload-recording-btn').addEventListener('click', () => {
+  showScreen('screen-upload');
+});
+
+document.getElementById('upload-back-btn').addEventListener('click', () => {
+  showScreen('screen-detail');
+});
+
+let uploadedFile = null;
+document.getElementById('upload-file-input').addEventListener('change', (e) => {
+  uploadedFile = e.target.files[0] || null;
+  document.getElementById('upload-confirm-btn').disabled = !uploadedFile;
+});
+
+document.getElementById('upload-confirm-btn').addEventListener('click', async () => {
+  if (!uploadedFile) return;
+  await runAnalysis(uploadedFile);
+});
