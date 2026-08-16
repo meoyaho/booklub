@@ -4,6 +4,9 @@ import { rmsToDb, classifyLevel } from './decibel.js';
 export class DecibelMonitor {
   constructor(stream, onLevel) {
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 2048;
     const source = this.audioCtx.createMediaStreamSource(stream);

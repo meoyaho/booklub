@@ -12,7 +12,7 @@ export async function searchBooks(query) {
       googleBooksId: item.id,
       title: info.title || '제목 없음',
       authors: (info.authors || []).join(', '),
-      thumbnail: info.imageLinks ? info.imageLinks.thumbnail : '',
+      thumbnail: info.imageLinks ? info.imageLinks.thumbnail.replace(/^http:/, 'https:') : '',
     };
   });
 }

@@ -59,6 +59,9 @@ async function startMeeting() {
     alert('마이크 권한이 필요합니다. 대신 "녹음본 업로드"를 이용해주세요.');
     return;
   }
+  loudSinceMs = null;
+  document.getElementById('meeting-warning').classList.add('hidden');
+  document.getElementById('meeting-bg').style.backgroundColor = LEVEL_COLORS.quiet;
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
   currentRecorder = new Recorder(meetingStream);
   showScreen('screen-meeting');
@@ -66,12 +69,18 @@ async function startMeeting() {
 
 async function runAnalysis(blob) {
   showScreen('screen-analyzing');
-  const recordingUrl = await uploadRecording(currentBookId, blob);
-  const book = allBooks.find((b) => b.id === currentBookId);
-  const summary = generateMockSummary(book ? book.title : '');
-  await updateBook(currentBookId, { recordingUrl, summary });
-  document.getElementById('summary-text').textContent = summary;
-  showScreen('screen-summary');
+  try {
+    const recordingUrl = await uploadRecording(currentBookId, blob);
+    const book = allBooks.find((b) => b.id === currentBookId);
+    const summary = generateMockSummary(book ? book.title : '');
+    await updateBook(currentBookId, { recordingUrl, summary });
+    document.getElementById('summary-text').textContent = summary;
+    showScreen('screen-summary');
+  } catch (err) {
+    alert('분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+    showScreen('screen-detail');
+    throw err;
+  }
 }
 
 subscribeBooks((books) => {
@@ -124,14 +133,25 @@ document.getElementById('detail-back-btn').addEventListener('click', () => {
 
 document.getElementById('start-meeting-btn').addEventListener('click', startMeeting);
 
-document.getElementById('meeting-finish-btn').addEventListener('click', async () => {
-  decibelMonitor.stop();
-  meetingStream.getTracks().forEach((t) => t.stop());
-  const blob = await currentRecorder.stop();
-  await runAnalysis(blob);
+document.getElementById('meeting-finish-btn').addEventListener('click', async (event) => {
+  event.target.disabled = true;
+  try {
+    decibelMonitor.stop();
+    meetingStream.getTracks().forEach((t) => t.stop());
+    const blob = await currentRecorder.stop();
+    await runAnalysis(blob);
+  } catch (err) {
+    // runAnalysis already alerted the user and returned them to screen-detail.
+    event.target.disabled = false;
+  }
 });
 
-document.getElementById('upload-recording-btn').addEventListener('click', () => showScreen('screen-upload'));
+document.getElementById('upload-recording-btn').addEventListener('click', () => {
+  uploadedFile = null;
+  document.getElementById('upload-file-input').value = '';
+  document.getElementById('upload-confirm-btn').disabled = true;
+  showScreen('screen-upload');
+});
 document.getElementById('upload-back-btn').addEventListener('click', () => showScreen('screen-detail'));
 
 document.getElementById('upload-file-input').addEventListener('change', (e) => {
@@ -139,9 +159,21 @@ document.getElementById('upload-file-input').addEventListener('change', (e) => {
   document.getElementById('upload-confirm-btn').disabled = !uploadedFile;
 });
 
-document.getElementById('upload-confirm-btn').addEventListener('click', async () => {
+document.getElementById('upload-confirm-btn').addEventListener('click', async (event) => {
   if (!uploadedFile) return;
-  await runAnalysis(uploadedFile);
+  event.target.disabled = true;
+  const fileToUpload = uploadedFile;
+  try {
+    await runAnalysis(fileToUpload);
+    uploadedFile = null;
+    document.getElementById('upload-file-input').value = '';
+    document.getElementById('upload-confirm-btn').disabled = true;
+  } catch (err) {
+    // runAnalysis already alerted the user and returned them to screen-detail.
+    uploadedFile = null;
+    document.getElementById('upload-file-input').value = '';
+    event.target.disabled = false;
+  }
 });
 
 document.getElementById('summary-continue-btn').addEventListener('click', () => showScreen('screen-participant-count'));
@@ -156,20 +188,26 @@ document.getElementById('participant-count-confirm').addEventListener('click', (
   showScreen('screen-reviews-form');
 });
 
-document.getElementById('reviews-save-btn').addEventListener('click', async () => {
-  const reviews = collectReviews();
-  const avgRating = calcAverage(reviews);
-  const participantCount = reviews.length;
+document.getElementById('reviews-save-btn').addEventListener('click', async (event) => {
+  event.target.disabled = true;
+  try {
+    const reviews = collectReviews();
+    const avgRating = calcAverage(reviews);
+    const participantCount = reviews.length;
 
-  await updateBook(currentBookId, {
-    status: 'analyzed',
-    reviews,
-    avgRating,
-    participantCount,
-  });
+    await updateBook(currentBookId, {
+      status: 'analyzed',
+      reviews,
+      avgRating,
+      participantCount,
+    });
 
-  currentBookId = null;
-  showScreen('screen-main');
+    currentBookId = null;
+    showScreen('screen-main');
+  } catch (err) {
+    alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    event.target.disabled = false;
+  }
 });
 
 startSplashAnimation();
