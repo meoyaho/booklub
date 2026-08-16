@@ -13,9 +13,13 @@ export function renderBookSlider(books, onBookClick, onAddClick) {
 
   const newestFirst = books.slice().reverse();
   newestFirst.forEach((book) => {
-    const spine = document.createElement('div');
+    const spine = document.createElement('button');
     spine.className = 'book-spine';
-    spine.textContent = book.title;
+
+    const label = document.createElement('span');
+    label.className = 'book-spine-label';
+    label.textContent = book.title || '';
+    spine.appendChild(label);
 
     const style = getSpineStyle(book.id, book.title);
     spine.style.width = `${style.width}px`;
