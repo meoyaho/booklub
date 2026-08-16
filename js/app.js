@@ -1,9 +1,9 @@
 // js/app.js
 import { showScreen } from './screens.js';
-import { subscribeBooks, addBook, uploadRecording, updateBook } from './firebase.js';
+import { subscribeBooks, addBook, updateBook, uploadRecording } from './firebase.js';
 import { renderBookSlider } from './bookSlider.js';
-import { searchBooks } from './search.js';
 import { renderBookDetail } from './bookDetail.js';
+import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
 import { generateMockSummary } from './mockAnalysis.js';
@@ -16,8 +16,9 @@ let currentBookId = null;
 let allBooks = [];
 let meetingStream = null;
 let decibelMonitor = null;
-let loudSinceMs = null;
 let currentRecorder = null;
+let loudSinceMs = null;
+let uploadedFile = null;
 
 function startSplashAnimation() {
   const logo = document.querySelector('.splash-logo');
@@ -38,26 +39,51 @@ function handleAddClick() {
   showScreen('screen-search');
 }
 
+function handleDecibelLevel(level) {
+  document.getElementById('meeting-bg').style.backgroundColor = LEVEL_COLORS[level];
+  const warningEl = document.getElementById('meeting-warning');
+
+  if (level === 'loud') {
+    if (loudSinceMs === null) loudSinceMs = Date.now();
+    if (Date.now() - loudSinceMs > 3000) warningEl.classList.remove('hidden');
+  } else {
+    loudSinceMs = null;
+    warningEl.classList.add('hidden');
+  }
+}
+
+async function startMeeting() {
+  try {
+    meetingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    alert('마이크 권한이 필요합니다. 대신 "녹음본 업로드"를 이용해주세요.');
+    return;
+  }
+  decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
+  currentRecorder = new Recorder(meetingStream);
+  showScreen('screen-meeting');
+}
+
+async function runAnalysis(blob) {
+  showScreen('screen-analyzing');
+  const recordingUrl = await uploadRecording(currentBookId, blob);
+  const book = allBooks.find((b) => b.id === currentBookId);
+  const summary = generateMockSummary(book ? book.title : '');
+  await updateBook(currentBookId, { recordingUrl, summary });
+  document.getElementById('summary-text').textContent = summary;
+  showScreen('screen-summary');
+}
+
 subscribeBooks((books) => {
   allBooks = books;
   renderBookSlider(books, handleBookClick, handleAddClick);
-
   if (currentBookId) {
     const updated = books.find((b) => b.id === currentBookId);
     if (updated) renderBookDetail(updated);
   }
 });
 
-startSplashAnimation();
-
-document.getElementById('detail-back-btn').addEventListener('click', () => {
-  currentBookId = null;
-  showScreen('screen-main');
-});
-
-document.getElementById('search-close-btn').addEventListener('click', () => {
-  showScreen('screen-main');
-});
+document.getElementById('search-close-btn').addEventListener('click', () => showScreen('screen-main'));
 
 document.getElementById('search-btn').addEventListener('click', async () => {
   const query = document.getElementById('search-input').value.trim();
@@ -91,46 +117,10 @@ document.getElementById('search-btn').addEventListener('click', async () => {
   });
 });
 
-function handleDecibelLevel(level) {
-  document.getElementById('meeting-bg').style.backgroundColor = LEVEL_COLORS[level];
-  const warningEl = document.getElementById('meeting-warning');
-
-  if (level === 'loud') {
-    if (loudSinceMs === null) loudSinceMs = Date.now();
-    if (Date.now() - loudSinceMs > 3000) {
-      warningEl.classList.remove('hidden');
-    }
-  } else {
-    loudSinceMs = null;
-    warningEl.classList.add('hidden');
-  }
-}
-
-async function startMeeting() {
-  try {
-    meetingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch (err) {
-    alert('마이크 권한이 필요합니다. 대신 "녹음본 업로드"를 이용해주세요.');
-    return;
-  }
-
-  decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
-  currentRecorder = new Recorder(meetingStream);
-  showScreen('screen-meeting');
-}
-
-async function runAnalysis(blob) {
-  showScreen('screen-analyzing');
-
-  const recordingUrl = await uploadRecording(currentBookId, blob);
-  const book = allBooks.find((b) => b.id === currentBookId);
-  const summary = generateMockSummary(book ? book.title : '');
-
-  await updateBook(currentBookId, { recordingUrl, summary });
-
-  document.getElementById('summary-text').textContent = summary;
-  showScreen('screen-summary');
-}
+document.getElementById('detail-back-btn').addEventListener('click', () => {
+  currentBookId = null;
+  showScreen('screen-main');
+});
 
 document.getElementById('start-meeting-btn').addEventListener('click', startMeeting);
 
@@ -141,15 +131,9 @@ document.getElementById('meeting-finish-btn').addEventListener('click', async ()
   await runAnalysis(blob);
 });
 
-document.getElementById('upload-recording-btn').addEventListener('click', () => {
-  showScreen('screen-upload');
-});
+document.getElementById('upload-recording-btn').addEventListener('click', () => showScreen('screen-upload'));
+document.getElementById('upload-back-btn').addEventListener('click', () => showScreen('screen-detail'));
 
-document.getElementById('upload-back-btn').addEventListener('click', () => {
-  showScreen('screen-detail');
-});
-
-let uploadedFile = null;
 document.getElementById('upload-file-input').addEventListener('change', (e) => {
   uploadedFile = e.target.files[0] || null;
   document.getElementById('upload-confirm-btn').disabled = !uploadedFile;
@@ -160,9 +144,7 @@ document.getElementById('upload-confirm-btn').addEventListener('click', async ()
   await runAnalysis(uploadedFile);
 });
 
-document.getElementById('summary-continue-btn').addEventListener('click', () => {
-  showScreen('screen-participant-count');
-});
+document.getElementById('summary-continue-btn').addEventListener('click', () => showScreen('screen-participant-count'));
 
 document.getElementById('participant-count-confirm').addEventListener('click', () => {
   const count = Number(document.getElementById('participant-count-input').value);
@@ -189,3 +171,5 @@ document.getElementById('reviews-save-btn').addEventListener('click', async () =
   currentBookId = null;
   showScreen('screen-main');
 });
+
+startSplashAnimation();
