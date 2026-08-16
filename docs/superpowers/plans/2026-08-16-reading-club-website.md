@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** "책책책 책을 읽읍시다" 독서모임 웹사이트를 빌드 도구 없는 순수 HTML/CSS/JS SPA로 구현한다. 책 목록을 가로 슬라이더로 관리하고, 실시간 모임(데시벨 모니터링+중재+녹음) 또는 녹음본 업로드를 통해 모임을 요약(mock)하고, 참석자별 별점/리뷰를 기록한다.
+**Goal:** "책책책 책좀 읽읍시다" 독서모임 웹사이트를 빌드 도구 없는 순수 HTML/CSS/JS SPA로 구현한다. 책 목록을 가로 슬라이더로 관리하고, 실시간 모임(데시벨 모니터링+중재+녹음) 또는 녹음본 업로드를 통해 모임을 요약(mock)하고, 참석자별 별점/리뷰를 기록한다.
 
 **Architecture:** `index.html` 하나에 모든 화면을 `<section class="screen">`으로 두고 JS로 active 클래스를 토글하는 SPA. 순수 로직(데시벨 계산, 평균 별점, mock 요약)은 별도 모듈로 분리해 Node 내장 테스트 러너로 단위 테스트한다. 데이터는 Firebase(Firestore+Storage)에 저장하며, Google Books API로 실시간 검색한다.
 
@@ -379,12 +379,12 @@ git commit -m "feat: add firebase data layer for books and recordings"
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>책책책 책을 읽읍시다</title>
+  <title>책책책 책좀 읽읍시다</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <section id="screen-splash" class="screen active">
-    <h1 class="splash-logo">책책책<br />책을 읽읍시다</h1>
+    <h1 class="splash-logo">책책책<br />책좀 읽읍시다</h1>
   </section>
 
   <section id="screen-main" class="screen">
@@ -609,7 +609,7 @@ startSplashAnimation();
 - [ ] **Step 5: 브라우저에서 수동 확인**
 
 Run: `python3 -m http.server 8000` (프로젝트 루트에서 실행)
-Expected: `http://localhost:8000` 접속 시 "책책책 책을 읽읍시다" 로고가 중앙에 뜬 뒤, 약 1.2초 후 위로 올라가며 메인 화면(빈 슬라이더)으로 전환됨
+Expected: `http://localhost:8000` 접속 시 "책책책 책좀 읽읍시다" 로고가 중앙에 뜬 뒤, 약 1.2초 후 위로 올라가며 메인 화면(빈 슬라이더)으로 전환됨
 
 - [ ] **Step 6: Commit**
 

@@ -37,11 +37,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>책책책 책을 읽읍시다</title>
+  <title>책책책 책좀 읽읍시다</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <img id="app-logo" src="assets/logo.png" alt="책책책 책을 읽읍시다" class="logo-splash" />
+  <img id="app-logo" src="assets/logo.png" alt="책책책 책좀 읽읍시다" class="logo-splash" />
 
   <section id="screen-splash" class="screen active"></section>
 
