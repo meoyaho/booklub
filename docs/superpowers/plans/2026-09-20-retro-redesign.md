@@ -1968,6 +1968,110 @@ EOF
 
 ---
 
+## Task 14: 버튼 배경을 텍스트 없는 순수 CSS 베벨로 교체 (레이블 겹침 버그 수정)
+
+**추가된 태스크 (Task 12 최종 QA에서 발견한 실제 버그 수정).** Task 5는 `.detail-action-primary`/`.detail-action-secondary`(검색·독서모임시작·녹음본업로드·보내기·진짜시작하기·다시시작하기·저장·행추가 등 사이트 전반의 버튼이 공유하는 클래스)에 `assets/buttons/선택_번튼_선택전.png`/`선택버튼_선택후.png`를 배경으로 적용했다. 그런데 이 이미지에는 "선택"이라는 글자가 픽셀로 박혀 있어서, 실제 DOM 텍스트("검색", "보내기", "진짜 시작하기!" 등)와 겹쳐 보이며 모든 버튼 라벨이 뒤섞여 읽을 수 없게 렌더링된다(Task 12 QA에서 데스크톱·모바일 모두에서 재현 확인). `assets/buttons/`에는 버튼별로 올바른 글자가 박힌 전용 이미지(검색버튼.png, 독서모임시작_선택전.png 등)가 있지만, "저장"/"행 추가"/"다시 시작하기!"처럼 대응하는 전용 이미지가 아예 없는 버튼도 많아 1:1 매핑으로는 전부 해결할 수 없다.
+
+가장 확실한 수정은 텍스트가 박힌 이미지를 재사용 클래스에서 아예 빼고, **글자 없는 순수 CSS 베벨(Windows 스타일 입체 테두리)**로 교체하는 것이다. 이렇게 하면 어떤 라벨 텍스트가 와도 절대 겹치지 않고, 레퍼런스의 "눌린 듯한" 버튼 느낌도 CSS만으로 재현할 수 있다.
+
+**Files:**
+- Modify: `css/style.css` (`.detail-action-primary`, `.detail-action-secondary`와 그 `:hover`/`:active` 규칙 — Task 5에서 추가된 부분)
+
+**Interfaces:**
+- Consumes: 없음
+- Produces: 없음 (버튼 시각 스타일만 교체, 클래스명/구조는 그대로라 다른 태스크의 코드에 영향 없음)
+
+- [ ] **Step 1: 이미지 배경 규칙을 CSS 베벨로 교체**
+
+`css/style.css`에서 Task 5가 추가한 아래 블록을 찾는다(정확한 파일명은 다를 수 있으니 `.detail-action-primary,\n.detail-action-secondary {`로 시작하는 규칙과 그 바로 아래 `:hover:not(:disabled), :active:not(:disabled)` 규칙을 찾는다):
+
+```css
+.detail-action-primary,
+.detail-action-secondary {
+  min-height: 46px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 0;
+  background: url('../assets/buttons/선택_번튼_선택전.png') center / 100% 100% no-repeat;
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.detail-action-primary:hover:not(:disabled),
+.detail-action-primary:active:not(:disabled),
+.detail-action-secondary:hover:not(:disabled),
+.detail-action-secondary:active:not(:disabled) {
+  background-image: url('../assets/buttons/선택버튼_선택후.png');
+}
+```
+
+이 두 규칙을 아래로 교체한다:
+
+```css
+.detail-action-primary,
+.detail-action-secondary {
+  min-height: 46px;
+  padding: 0 22px;
+  border: 2px solid;
+  border-color: #ffffff #6b6b60 #6b6b60 #ffffff;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ffffff, #d8d4c8);
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.detail-action-primary:hover:not(:disabled),
+.detail-action-primary:active:not(:disabled),
+.detail-action-secondary:hover:not(:disabled),
+.detail-action-secondary:active:not(:disabled) {
+  border-color: #6b6b60 #ffffff #ffffff #6b6b60;
+  background: linear-gradient(180deg, #d8d4c8, #ffffff);
+}
+```
+
+(위/왼쪽이 밝고 아래/오른쪽이 어두우면 "튀어나온" 버튼, 호버/액티브 시 반대로 뒤집으면 "눌린" 버튼처럼 보이는 고전적인 Windows 베벨 기법이다. 글자가 이미지에 없으므로 어떤 버튼 텍스트든 겹치지 않는다.)
+
+`button:disabled { cursor: not-allowed; opacity: 0.48; }` 규칙은 그대로 둔다.
+
+- [ ] **Step 2: `.meeting-finish-btn`의 투명 오버라이드는 손대지 않는다**
+
+`.meeting-finish-btn { border-color: currentColor; background: transparent; color: inherit; }`는 이번 리디자인 작업 이전부터 있던 규칙으로, 녹음 화면의 동적 배경색(초록/노랑/빨강)과 대비를 맞추기 위한 의도적인 예외다. Task 12 QA에서 "베벨이 없어 밋밋해 보인다"는 Minor 관찰이 있었지만, 이번 태스크의 범위(이미지-텍스트 겹침 버그 수정)와는 무관하므로 건드리지 않는다.
+
+- [ ] **Step 3: 수동 확인**
+
+```bash
+python3 -m http.server 8000
+```
+Task 12에서 쓴 것과 같은 방식(모의 `book`/`handlers`로 `renderBookSlider`를 직접 불러오는 임시 HTML — 커밋하지 않고 확인 후 삭제)으로 최소한 아래 버튼들의 텍스트가 배경과 겹치지 않고 또렷하게 보이는지 확인한다: 검색, 독서모임 시작, 녹음본 업로드, 보내기, 진짜 시작하기!, 다시 시작하기!, 저장. 호버 시 베벨이 반전되는지도 확인한다.
+
+```bash
+npm test
+```
+Expected: 기존 테스트 전체 PASS (CSS만 수정, 로직 변경 없음).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add css/style.css
+git commit -m "$(cat <<'EOF'
+버튼 배경을 텍스트 없는 CSS 베벨로 교체해 라벨 겹침 버그 수정
+
+.detail-action-primary/.detail-action-secondary가 재사용되는 모든
+버튼(검색·독서모임시작·녹음본업로드·보내기·진짜시작하기·저장 등)에
+"선택" 글자가 박힌 이미지를 배경으로 썼던 게 원인으로, 실제 버튼
+텍스트와 겹쳐 라벨을 읽을 수 없었다(Task 12 QA에서 발견). 이미지
+대신 순수 CSS 베벨(입체 테두리)로 교체해 어떤 라벨이든 겹치지
+않게 수정.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ## Self-Review 체크리스트 (작성자 참고용, 실행 불필요)
 
 - **스펙 커버리지:** A(비주얼)→Task 4,5 / B(검색·상세필드)→Task 6, 상세필드(공유·토론시간·날짜)는 기존 데이터에 없는 필드라 이번 플랜에서는 다루지 않음(아래 "범위 조정" 참고) / C(별점 팝업)→Task 7,8 / D(시작 전 2단계)→Task 9,10 / E(길잡이 캐릭터)→Task 3,11 / F(에셋)→Task 2.
