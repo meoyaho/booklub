@@ -643,6 +643,84 @@ function renderMonthDetail(detail, book, selectedPeriod, handlers) {
   }
 }
 
+function createGuideBubble({ characterFile, lines, onSelect }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'guide-bubble-wrap';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'guide-bubble';
+
+  lines.forEach((line) => {
+    const p = document.createElement('p');
+    p.className = 'guide-bubble-line';
+    p.textContent = line;
+    bubble.appendChild(p);
+  });
+
+  if (onSelect) {
+    const options = document.createElement('div');
+    options.className = 'guide-bubble-options';
+    onSelect.forEach(({ label, onClick }) => {
+      const optBtn = document.createElement('button');
+      optBtn.type = 'button';
+      optBtn.className = 'guide-bubble-option';
+      optBtn.textContent = label;
+      optBtn.addEventListener('click', onClick);
+      options.appendChild(optBtn);
+    });
+    bubble.appendChild(options);
+  }
+
+  const character = document.createElement('img');
+  character.className = 'guide-character';
+  character.src = `assets/characters/${characterFile}`;
+  character.alt = '길잡이 캐릭터';
+
+  wrap.append(bubble, character);
+  return wrap;
+}
+
+function renderMeetingIntro(detail, handlers) {
+  detail.innerHTML = '';
+
+  const page = document.createElement('div');
+  page.className = 'month-detail-scroll meeting-page meeting-intro-page';
+
+  const heading = document.createElement('p');
+  heading.className = 'meeting-intro-heading';
+  heading.textContent = '독서모임을 시작해볼까요?';
+  page.appendChild(heading);
+
+  let bubbleWrap = createGuideBubble({
+    characterFile: '책6_인사.png',
+    lines: ['안녕하세요? 독서모임 길잡이입니다. 이 응용프로그램을 사용하는 여러분을 돕는게 제 일이죠.'],
+    onSelect: [
+      {
+        label: '무슨말을 해야할까요?',
+        onClick: () => {
+          const nextBubble = createGuideBubble({
+            characterFile: '책3_검색.png',
+            lines: [
+              '어떻게 시작해야할지 모르겠다면 이런 이야기를 나눠보세요.',
+              '1. 어떻게 읽었는지 서로 이야기해보기',
+              '2. 가장 인상에 깊었던 페이지를 서로 이야기해보기',
+              '3. 내가 별로라고 생각했던 점',
+              '4. 내가 좋다고 생각했던 점',
+            ],
+            onSelect: [{ label: '고마워', onClick: () => handlers.onIntroContinue() }],
+          });
+          bubbleWrap.replaceWith(nextBubble);
+          bubbleWrap = nextBubble;
+        },
+      },
+      { label: '그냥 시작할게', onClick: () => handlers.onIntroContinue() },
+    ],
+  });
+
+  page.appendChild(bubbleWrap);
+  detail.appendChild(page);
+}
+
 function renderMeetingRules(detail, handlers) {
   detail.innerHTML = '';
 
@@ -899,7 +977,13 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   const selectedBook = monthBooks.get(periodKey(selectedPeriod.year, selectedPeriod.month));
 
   container.innerHTML = '';
-  container.classList.toggle('is-meeting-left', handlers.view === 'meeting-rules' || handlers.view === 'meeting-active');
+  container.classList.toggle('is-meeting-left', handlers.view === 'meeting-intro' || handlers.view === 'meeting-rules' || handlers.view === 'meeting-active');
+
+  if (handlers.view === 'meeting-intro') {
+    renderMeetingLeft(container, handlers);
+    renderMeetingIntro(detail, handlers);
+    return;
+  }
 
   if (handlers.view === 'meeting-rules') {
     renderMeetingLeft(container, handlers);

@@ -125,7 +125,7 @@ function syncMainLayoutState() {
   const layout = document.querySelector('.main-layout');
   if (!layout) return;
 
-  const isMeetingScreen = mainView === 'meeting-rules' || mainView === 'meeting-active';
+  const isMeetingScreen = mainView === 'meeting-intro' || mainView === 'meeting-rules' || mainView === 'meeting-active';
   const isMobileDetailPage = !isMeetingScreen && mobilePage === 'detail';
   layout.classList.toggle('is-meeting-rules', mainView === 'meeting-rules');
   layout.classList.toggle('is-meeting-active', mainView === 'meeting-active');
@@ -244,8 +244,9 @@ function renderMain() {
     onDeleteBook: deleteSelectedBook,
     onStartMeeting(bookId) {
       currentBookId = bookId;
-      openMeetingRules();
+      openMeetingIntro();
     },
+    onIntroContinue: openMeetingRules,
     onMeetingConsent: startMeeting,
     onMeetingFinish: finishMeeting,
     onReviewSave: saveMagazineReviews,
@@ -421,6 +422,12 @@ function handleDecibelLevel(level) {
     loudSinceMs = null;
     setMeetingWarningVisible(false);
   }
+}
+
+function openMeetingIntro() {
+  mainView = 'meeting-intro';
+  renderMain();
+  showScreen('screen-main');
 }
 
 function openMeetingRules() {
