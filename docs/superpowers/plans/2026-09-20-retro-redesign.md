@@ -1889,6 +1889,85 @@ python3 -m http.server 8000
 
 ---
 
+## Task 13: Galmuri 픽셀 폰트 적용 (GalmuriMono11)
+
+**추가된 태스크 (사용자 지시).** Task 4에서 컬러 토큰/제목바는 적용했지만 폰트는 아직 기존 `Ridibatang`(세리프)를 그대로 쓰고 있다. 사용자가 지정한 [Galmuri](https://github.com/quiple/galmuri/tree/v2.40.4) 프로젝트의 `GalmuriMono11`(고정폭 도트 폰트)로 교체한다. 이 폰트는 jsDelivr의 GitHub CDN으로 태그 v2.40.4를 직접 가리켜 제공한다 (npm 레지스트리에는 아직 2.40.3까지만 배포되어 있어, 사용자가 지정한 정확한 버전을 쓰려면 GitHub CDN 경로를 써야 한다 — 두 URL 모두 실제 200 OK로 접근 가능함을 확인했다):
+
+- `https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.woff2`
+- `https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.ttf`
+
+**Files:**
+- Modify: `css/style.css` (`@font-face` 블록, 그리고 `font-family: 'Ridibatang', serif;`를 쓰는 모든 규칙)
+
+**Interfaces:**
+- Consumes: 없음
+- Produces: 이후 모든 화면에서 상속되는 기본 폰트가 `'GalmuriMono11', monospace`로 바뀜. 이후 태스크(5~12)가 새로 추가하는 CSS는 별도로 `font-family`를 지정하지 않는 한 이 폰트를 자동으로 상속받는다.
+
+- [ ] **Step 1: `@font-face` 블록 교체**
+
+`css/style.css` 최상단의 기존 블록:
+
+```css
+@font-face {
+  font-family: 'Ridibatang';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+```
+
+를 아래로 교체:
+
+```css
+@font-face {
+  font-family: 'GalmuriMono11';
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+- [ ] **Step 2: 전역 폰트 참조 전부 치환**
+
+`css/style.css` 파일 전체에서 `font-family: 'Ridibatang', serif;`로 되어 있는 모든 규칙(현재 9곳 — `body`와 여러 `.month-detail`/`.detail-*`/`.meeting-*`/`.magazine-*` 관련 규칙)을 전부 찾아 `font-family: 'GalmuriMono11', monospace;`로 바꾼다. 한 곳도 빠짐없이 전체를 치환해야 한다(`grep -n "Ridibatang" css/style.css`로 치환 전후 개수를 확인).
+
+- [ ] **Step 3: 수동 확인**
+
+```bash
+python3 -m http.server 8000
+```
+브라우저(또는 사용 가능한 헤드리스 브라우저 도구)로 열어 텍스트가 도트/픽셀 느낌의 고정폭 폰트로 렌더링되는지 확인한다. 개발자 도구 Network 탭에서 `GalmuriMono11.woff2`(또는 `.ttf`)가 200으로 로드되는지, 폰트 로드 실패로 콘솔 에러가 뜨지 않는지 확인한다.
+
+```bash
+grep -n "Ridibatang" css/style.css
+```
+Expected: 결과 없음(전부 치환 완료).
+
+```bash
+npm test
+```
+Expected: 기존 테스트 전체 PASS (이 태스크는 CSS만 건드리므로 로직 테스트에는 영향 없음).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add css/style.css
+git commit -m "$(cat <<'EOF'
+전역 폰트를 Galmuri(GalmuriMono11) 픽셀 폰트로 교체
+
+레퍼런스 스크린샷의 도트 폰트 느낌을 반영하기 위해 기존
+Ridibatang(세리프)를 GalmuriMono11(고정폭 도트 폰트, jsDelivr
+GitHub CDN v2.40.4)로 전면 교체.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ## Self-Review 체크리스트 (작성자 참고용, 실행 불필요)
 
 - **스펙 커버리지:** A(비주얼)→Task 4,5 / B(검색·상세필드)→Task 6, 상세필드(공유·토론시간·날짜)는 기존 데이터에 없는 필드라 이번 플랜에서는 다루지 않음(아래 "범위 조정" 참고) / C(별점 팝업)→Task 7,8 / D(시작 전 2단계)→Task 9,10 / E(길잡이 캐릭터)→Task 3,11 / F(에셋)→Task 2.
