@@ -29,6 +29,8 @@ let loudSinceMs = null;
 let levelSinceMs = Date.now();
 let lastEncourageAt = null;
 let guideState = GUIDE_STATES.NONE;
+let guideStateSetAt = 0;
+const GUIDE_MIN_DISPLAY_MS = 3000;
 let uploadedFile = null;
 const today = new Date();
 let selectedPeriod = {
@@ -439,8 +441,13 @@ function handleDecibelLevel(level) {
     now,
     lastEncourageAt,
   });
-  if (nextGuideState !== guideState) {
+  const heldLongEnough = now - guideStateSetAt >= GUIDE_MIN_DISPLAY_MS;
+  const canChange = guideState !== GUIDE_STATES.BLOCK_FIGHT
+    && nextGuideState !== guideState
+    && (nextGuideState !== GUIDE_STATES.NONE || heldLongEnough);
+  if (canChange) {
     guideState = nextGuideState;
+    guideStateSetAt = now;
     if (guideState === GUIDE_STATES.ENCOURAGE) lastEncourageAt = now;
     renderMain();
   }
@@ -461,6 +468,7 @@ function openMeetingRules() {
   levelSinceMs = Date.now();
   lastEncourageAt = null;
   guideState = GUIDE_STATES.NONE;
+  guideStateSetAt = 0;
   renderMain();
   showScreen('screen-main');
 }
@@ -499,6 +507,7 @@ async function startMeeting() {
   levelSinceMs = Date.now();
   lastEncourageAt = null;
   guideState = GUIDE_STATES.NONE;
+  guideStateSetAt = 0;
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
   currentRecorder = new Recorder(meetingStream);
@@ -518,6 +527,10 @@ async function finishMeeting(event) {
     loudSinceMs = null;
     meetingLevel = 'quiet';
     meetingWarningVisible = false;
+    levelSinceMs = Date.now();
+    lastEncourageAt = null;
+    guideState = GUIDE_STATES.NONE;
+    guideStateSetAt = 0;
     mainView = 'detail';
     setLogoMode('docked');
     renderMain();
@@ -542,6 +555,7 @@ async function resetMeetingAfterFight() {
   meetingLevel = 'quiet';
   meetingWarningVisible = false;
   guideState = GUIDE_STATES.NONE;
+  guideStateSetAt = 0;
   openMeetingRules();
 }
 

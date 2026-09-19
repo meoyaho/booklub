@@ -886,7 +886,6 @@ button:disabled {
   max-width: 560px;
   padding: 16px;
   border-radius: 4px;
-  transition: background-color 0.3s ease;
 }
 
 .guide-box-warn {
