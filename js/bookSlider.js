@@ -760,7 +760,7 @@ function createMeetingCopy({
   const confirmButton = document.createElement('button');
   confirmButton.className = 'detail-action-primary meeting-confirm-btn';
   confirmButton.type = 'button';
-  confirmButton.textContent = '확인';
+  confirmButton.textContent = '진짜 시작하기!';
 
   if (includeConsent) {
     confirmButton.addEventListener('click', onConfirm);

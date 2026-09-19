@@ -808,6 +808,11 @@ button:disabled {
   max-width: 560px;
 }
 
+.meeting-rules-page {
+  background: linear-gradient(160deg, #eafff2, #8fe0b0);
+  border-radius: 2px;
+}
+
 .meeting-title {
   color: var(--orange);
   font-family: inherit;
