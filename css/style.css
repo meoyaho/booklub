@@ -8,13 +8,24 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ink: #111111;
-  --muted: #707070;
-  --line: #d7d7d0;
+  --ink: #1a1a1a;
+  --muted: #6b6b60;
+  --line: #999999;
   --paper: #ffffff;
   --panel: #ffffff;
   --orange: #ff4a14;
   --green: #2f8f6b;
+
+  --retro-cream: #ede8dc;
+  --retro-titlebar-start: #4a6fc0;
+  --retro-titlebar-end: #8fb3f0;
+  --retro-border: #8c8c84;
+  --retro-warn-orange-start: #ffd9a0;
+  --retro-warn-orange-end: #ff9a3d;
+  --retro-warn-pink-start: #ffe3ee;
+  --retro-warn-pink-end: #ff9ac0;
+  --titlebar-height: 44px;
+
   --detail-copy-size: clamp(1.1rem, 2.05vw, 2.3rem);
   --detail-copy-line: 1.22;
   --magazine-copy-size: clamp(0.95rem, 1.45vw, 1.55rem);
@@ -25,13 +36,15 @@
   --splash-gate-height: 48px;
   --splash-gap: 18px;
   --splash-center-shift: calc((var(--splash-gap) + var(--splash-gate-height)) / 2);
+  --main-outer-gutter: clamp(24px, 4vw, 64px);
+  --main-column-gap: clamp(24px, 4vw, 64px);
 }
 
 body {
   font-family: 'Ridibatang', serif;
   height: 100vh;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--retro-cream);
   color: var(--ink);
 }
 
@@ -167,14 +180,48 @@ button {
   text-align: center;
 }
 
+.app-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--titlebar-height);
+  padding: 0 16px;
+  border-bottom: 2px solid var(--retro-border);
+  background: linear-gradient(180deg, var(--retro-titlebar-start), var(--retro-titlebar-end));
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.app-titlebar-help {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #ffffff;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+body:has(#screen-main.active) .app-titlebar {
+  display: flex;
+}
+
+#screen-main:not(.active) .app-titlebar {
+  display: none;
+}
+
 .main-layout {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - var(--titlebar-height));
   overflow: hidden;
-  background: #ffffff;
+  background: var(--retro-cream);
 }
 
 .main-layout::before {
@@ -199,7 +246,7 @@ button {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--retro-cream);
   transition: background-color 0.35s ease;
 }
 
@@ -458,6 +505,9 @@ body:has(#screen-main.active) #app-logo {
   overflow-x: hidden;
   overflow-y: auto;
   background: #ffffff;
+  border: 2px solid var(--retro-border);
+  border-radius: 2px;
+  padding: 0 12px;
   font-family: 'Ridibatang', serif;
   text-align: left;
   transition: background-color 0.35s ease, color 0.35s ease;
