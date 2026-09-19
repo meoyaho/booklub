@@ -14,6 +14,7 @@ import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
 import { calcAverage } from './ratings.js';
+import { computeGuideState, GUIDE_STATES } from './guideState.js';
 
 const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 const MEETING_LEVELS = Object.keys(LEVEL_COLORS);
@@ -25,6 +26,9 @@ let meetingStream = null;
 let decibelMonitor = null;
 let currentRecorder = null;
 let loudSinceMs = null;
+let levelSinceMs = Date.now();
+let lastEncourageAt = null;
+let guideState = GUIDE_STATES.NONE;
 let uploadedFile = null;
 const today = new Date();
 let selectedPeriod = {
@@ -197,6 +201,7 @@ function renderMain() {
     meetingLevel,
     meetingWarningVisible,
     meetingPermissionMessage,
+    guideState,
     mobilePage,
     onMonthSelect(period) {
       selectedPeriod = period;
@@ -249,6 +254,7 @@ function renderMain() {
     onIntroContinue: openMeetingRules,
     onMeetingConsent: startMeeting,
     onMeetingFinish: finishMeeting,
+    onGuideReset: resetMeetingAfterFight,
     onReviewSave: saveMagazineReviews,
     onEditContentSave: saveEditedBookContent,
     onRatingSave: saveRatingReview,
@@ -411,7 +417,10 @@ function openUploadScreen(bookId = currentBookId) {
 }
 
 function handleDecibelLevel(level) {
-  meetingLevel = level;
+  if (level !== meetingLevel) {
+    meetingLevel = level;
+    levelSinceMs = Date.now();
+  }
   updateMeetingLevelClass(level);
   setMeetingWarningBannerVisible(level === 'loud');
 
@@ -421,6 +430,19 @@ function handleDecibelLevel(level) {
   } else {
     loudSinceMs = null;
     setMeetingWarningVisible(false);
+  }
+
+  const now = Date.now();
+  const nextGuideState = computeGuideState({
+    level,
+    levelSinceMs,
+    now,
+    lastEncourageAt,
+  });
+  if (nextGuideState !== guideState) {
+    guideState = nextGuideState;
+    if (guideState === GUIDE_STATES.ENCOURAGE) lastEncourageAt = now;
+    renderMain();
   }
 }
 
@@ -436,6 +458,9 @@ function openMeetingRules() {
   meetingWarningVisible = false;
   meetingPermissionMessage = '';
   loudSinceMs = null;
+  levelSinceMs = Date.now();
+  lastEncourageAt = null;
+  guideState = GUIDE_STATES.NONE;
   renderMain();
   showScreen('screen-main');
 }
@@ -471,6 +496,9 @@ async function startMeeting() {
   meetingLevel = 'quiet';
   meetingWarningVisible = false;
   meetingPermissionMessage = '';
+  levelSinceMs = Date.now();
+  lastEncourageAt = null;
+  guideState = GUIDE_STATES.NONE;
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
   currentRecorder = new Recorder(meetingStream);
@@ -497,6 +525,24 @@ async function finishMeeting(event) {
   } catch (err) {
     if (event?.target) event.target.disabled = false;
   }
+}
+
+async function resetMeetingAfterFight() {
+  try {
+    decibelMonitor?.stop();
+    meetingStream?.getTracks().forEach((track) => track.stop());
+    await currentRecorder?.stop();
+  } catch (err) {
+    // 녹음 중단 실패는 무시하고 계속 리셋 진행
+  }
+  decibelMonitor = null;
+  meetingStream = null;
+  currentRecorder = null;
+  loudSinceMs = null;
+  meetingLevel = 'quiet';
+  meetingWarningVisible = false;
+  guideState = GUIDE_STATES.NONE;
+  openMeetingRules();
 }
 
 async function runAnalysis(blob) {

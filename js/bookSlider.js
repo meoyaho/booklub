@@ -819,6 +819,29 @@ function renderMeetingLeft(container, handlers) {
   container.appendChild(panel);
 }
 
+const GUIDE_CHARACTER_CONTENT = {
+  'idle-help': {
+    characterFile: '책5_도움.png',
+    lines: ['혹시 제가 필요할까요? 저는 여러분을 최대한 도와드릴수 있습니다!', '무슨말을 해야할까요? / 어떻게 시작해야돼? / 어쩌구... / 그냥 시작할게'],
+    boxClass: '',
+  },
+  encourage: {
+    characterFile: '책7_엄지척.png',
+    lines: ['우와!! 지금 너무 좋은데요!! 서로 말도 잘하고 계세용!'],
+    boxClass: '',
+  },
+  'warn-loud': {
+    characterFile: '책2_궁금.png',
+    lines: ['지금 너무 격해졌어요, 잠깐 쉬었다 해보세요!!'],
+    boxClass: 'guide-box-warn',
+  },
+  'block-fight': {
+    characterFile: '책1_금지.png',
+    lines: ['건전한 독서모임을 위한 수칙을 다시 떠올려볼까요?'],
+    boxClass: 'guide-box-block',
+  },
+};
+
 function renderMeetingActive(detail, handlers) {
   detail.innerHTML = '';
 
@@ -835,13 +858,38 @@ function renderMeetingActive(detail, handlers) {
     warning.classList.add('hidden');
   }
 
-  const finishButton = document.createElement('button');
-  finishButton.className = 'detail-action-primary meeting-finish-btn';
-  finishButton.type = 'button';
-  finishButton.textContent = '완료';
-  finishButton.addEventListener('click', handlers.onMeetingFinish);
+  page.append(copy, warning);
 
-  page.append(copy, warning, finishButton);
+  const guideContent = GUIDE_CHARACTER_CONTENT[handlers.guideState];
+  if (guideContent) {
+    const box = document.createElement('div');
+    box.className = `guide-recording-box ${guideContent.boxClass}`.trim();
+    box.appendChild(createGuideBubble({ characterFile: guideContent.characterFile, lines: guideContent.lines }));
+    page.appendChild(box);
+  }
+
+  if (handlers.guideState === 'block-fight') {
+    const resetPage = document.createElement('div');
+    resetPage.className = 'meeting-rules-page block-fight-overlay';
+    resetPage.appendChild(createMeetingRulesList());
+
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'detail-action-primary';
+    resetButton.textContent = '다시 시작하기!';
+    resetButton.addEventListener('click', () => handlers.onGuideReset?.());
+
+    resetPage.appendChild(resetButton);
+    page.appendChild(resetPage);
+  } else {
+    const finishButton = document.createElement('button');
+    finishButton.className = 'detail-action-primary meeting-finish-btn';
+    finishButton.type = 'button';
+    finishButton.textContent = '완료';
+    finishButton.addEventListener('click', handlers.onMeetingFinish);
+    page.appendChild(finishButton);
+  }
+
   detail.appendChild(page);
 }
 

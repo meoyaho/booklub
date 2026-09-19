@@ -881,6 +881,31 @@ button:disabled {
   height: auto;
 }
 
+.guide-recording-box {
+  width: 100%;
+  max-width: 560px;
+  padding: 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.guide-box-warn {
+  background: linear-gradient(160deg, var(--retro-warn-orange-start), var(--retro-warn-orange-end));
+}
+
+.guide-box-block {
+  background: linear-gradient(160deg, var(--retro-warn-pink-start), var(--retro-warn-pink-end));
+}
+
+.block-fight-overlay {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 12px;
+  padding: 20px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--retro-warn-pink-start), var(--retro-warn-pink-end));
+}
+
 .meeting-rules-list {
   display: grid;
   gap: 10px;
