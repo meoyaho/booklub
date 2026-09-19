@@ -250,6 +250,7 @@ function renderMain() {
     onMeetingFinish: finishMeeting,
     onReviewSave: saveMagazineReviews,
     onEditContentSave: saveEditedBookContent,
+    onRatingSave: saveRatingReview,
     onUploadRecording(bookId) {
       openUploadScreen(bookId);
     },
@@ -615,6 +616,26 @@ async function saveEditedBookContent(bookId, summary, reviews) {
     showScreen('screen-main');
   } catch (err) {
     alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+  }
+}
+
+async function saveRatingReview(bookId, reviews) {
+  try {
+    const avgRating = calcAverage(reviews);
+    await updateBook(currentClubId, bookId, {
+      reviews,
+      avgRating,
+      participantCount: reviews.length,
+    });
+
+    allBooks = allBooks.map((book) => (
+      book.id === bookId
+        ? { ...book, reviews, avgRating, participantCount: reviews.length }
+        : book
+    ));
+    renderMain();
+  } catch (err) {
+    alert('리뷰 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
   }
 }
 

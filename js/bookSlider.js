@@ -223,13 +223,17 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
   authors.className = 'month-detail-authors';
   authors.textContent = book.authors || '작가 정보 없음';
 
-  const ratingRow = document.createElement('div');
-  ratingRow.className = 'detail-rating-row';
+  const ratingRow = document.createElement('button');
+  ratingRow.type = 'button';
+  ratingRow.className = 'detail-rating-row detail-rating-trigger';
+  ratingRow.setAttribute('aria-label', '총점 및 리뷰 보기');
   ratingRow.appendChild(createStars(book.avgRating));
 
   const ratingText = document.createElement('span');
   ratingText.textContent = Number(book.avgRating || 0).toFixed(1);
   ratingRow.appendChild(ratingText);
+
+  ratingRow.addEventListener('click', () => renderRatingModal(book, handlers));
 
   info.append(title, authors, ratingRow);
   hero.append(coverStage, info);
@@ -761,6 +765,127 @@ function renderMeetingActive(detail, handlers) {
 
   page.append(copy, warning, finishButton);
   detail.appendChild(page);
+}
+
+function removeRatingModal() {
+  document.getElementById('rating-modal')?.remove();
+}
+
+function createStarPicker(initialValue, onChange) {
+  const picker = document.createElement('div');
+  picker.className = 'rating-picker';
+  picker.setAttribute('role', 'radiogroup');
+  picker.setAttribute('aria-label', '별점 선택');
+
+  let value = initialValue;
+  const buttons = [1, 2, 3, 4, 5].map((n) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rating-picker-star';
+    btn.textContent = n <= value ? '★' : '☆';
+    btn.setAttribute('aria-label', `${n}점`);
+    btn.addEventListener('click', () => {
+      value = n;
+      buttons.forEach((b, i) => {
+        b.textContent = i + 1 <= value ? '★' : '☆';
+      });
+      onChange(value);
+    });
+    return btn;
+  });
+
+  picker.append(...buttons);
+  picker.getValue = () => value;
+  return picker;
+}
+
+function renderRatingModal(book, handlers) {
+  removeRatingModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'rating-modal';
+  overlay.className = 'rating-modal-overlay';
+
+  const modal = document.createElement('section');
+  modal.className = 'rating-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', `${book.title || '이 책'} 감상평`);
+
+  const closeButton = document.createElement('button');
+  closeButton.className = 'rating-modal-close';
+  closeButton.type = 'button';
+  closeButton.textContent = '×';
+  closeButton.setAttribute('aria-label', '닫기');
+  closeButton.addEventListener('click', removeRatingModal);
+
+  const list = document.createElement('ul');
+  list.className = 'rating-modal-list';
+  const reviews = book.reviews || [];
+  if (reviews.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'rating-modal-empty';
+    empty.textContent = '아직 감상평이 없어요. 가장 먼저 남겨보세요!';
+    list.appendChild(empty);
+  } else {
+    reviews.forEach((review) => {
+      const item = document.createElement('li');
+      item.className = 'rating-modal-item';
+
+      const head = document.createElement('p');
+      head.className = 'rating-modal-item-head';
+      head.textContent = `[${review.name || '익명'}]의 감상평 : ${'★'.repeat(Number(review.rating) || 0)}${'☆'.repeat(5 - (Number(review.rating) || 0))}`;
+
+      const body = document.createElement('p');
+      body.className = 'rating-modal-item-body';
+      body.textContent = review.review || '';
+
+      item.append(head, body);
+      list.appendChild(item);
+    });
+  }
+
+  const form = document.createElement('form');
+  form.className = 'rating-modal-form';
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'rating-modal-name';
+  nameInput.placeholder = '이름';
+  nameInput.setAttribute('aria-label', '이름');
+  nameInput.required = true;
+
+  const reviewInput = document.createElement('input');
+  reviewInput.type = 'text';
+  reviewInput.className = 'rating-modal-review';
+  reviewInput.placeholder = '한줄 감상평';
+  reviewInput.setAttribute('aria-label', '감상평');
+
+  const picker = createStarPicker(5, () => {});
+
+  const submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.className = 'detail-action-primary';
+  submitButton.textContent = '보내기';
+
+  form.append(nameInput, picker, reviewInput, submitButton);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    const newReview = { name, rating: picker.getValue(), review: reviewInput.value.trim() };
+    handlers.onRatingSave(book.id, [...(book.reviews || []), newReview]);
+    removeRatingModal();
+  });
+
+  modal.append(closeButton, list, form);
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) removeRatingModal();
+  });
+  document.body.appendChild(overlay);
+  nameInput.focus();
 }
 
 export function renderBookSlider(books, selectedPeriod, handlers) {
