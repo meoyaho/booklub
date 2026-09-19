@@ -10,7 +10,6 @@ import {
   analyzeRecording,
 } from './firebase.js';
 import { renderBookSlider } from './bookSlider.js';
-import { renderBookDetail } from './bookDetail.js';
 import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
@@ -660,63 +659,8 @@ function subscribeCurrentClub() {
   unsubscribeBooks = subscribeBooks(currentClubId, (books) => {
     allBooks = books;
     renderMain();
-    if (currentBookId) {
-      const updated = books.find((b) => b.id === currentBookId);
-      if (updated) renderBookDetail(updated);
-    }
   });
 }
-
-document.getElementById('search-close-btn').addEventListener('click', () => {
-  mainView = 'detail';
-  showScreen('screen-main');
-});
-
-document.getElementById('search-btn').addEventListener('click', async () => {
-  const query = document.getElementById('search-input').value.trim();
-  const resultsEl = document.getElementById('search-results');
-  resultsEl.innerHTML = '';
-  if (!query) return;
-
-  let results;
-  try {
-    results = await searchBooks(query);
-  } catch (err) {
-    resultsEl.innerHTML = '<li>검색 중 오류가 발생했습니다. 다시 시도해주세요.</li>';
-    return;
-  }
-
-  if (results.length === 0) {
-    resultsEl.innerHTML = '<li>검색 결과가 없습니다.</li>';
-    return;
-  }
-
-  results.forEach((book) => {
-    const li = document.createElement('li');
-    li.textContent = `${book.title} - ${book.authors}`;
-    li.addEventListener('click', async () => {
-      const bookId = await addSearchResultToMonth(book);
-      document.getElementById('search-input').value = '';
-      resultsEl.innerHTML = '';
-      currentBookId = bookId;
-      showScreen('screen-main');
-    });
-    resultsEl.appendChild(li);
-  });
-});
-
-document.getElementById('detail-back-btn').addEventListener('click', () => {
-  currentBookId = null;
-  showScreen('screen-main');
-});
-
-document.getElementById('start-meeting-btn').addEventListener('click', () => {
-  if (!currentBookId) return;
-  openMeetingRules();
-});
-
-document.getElementById('upload-recording-btn').addEventListener('click', () => openUploadScreen());
-document.getElementById('upload-back-btn').addEventListener('click', () => showScreen('screen-main'));
 
 document.getElementById('upload-file-input').addEventListener('change', async (e) => {
   uploadedFile = e.target.files[0] || null;
