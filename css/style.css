@@ -777,20 +777,20 @@ body:has(#screen-main.active) #app-logo {
 .detail-action-primary,
 .detail-action-secondary {
   min-height: 46px;
-  padding: 0 18px;
-  border: 1px solid var(--ink);
-  border-radius: 8px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 0;
+  background: url('../assets/buttons/선택_번튼_선택전.png') center / 100% 100% no-repeat;
+  color: var(--ink);
   font-weight: 800;
   cursor: pointer;
 }
 
-.detail-action-primary {
-  background: var(--ink);
-  color: #ffffff;
-}
-
-.detail-action-secondary {
-  background: var(--panel);
+.detail-action-primary:hover:not(:disabled),
+.detail-action-primary:active:not(:disabled),
+.detail-action-secondary:hover:not(:disabled),
+.detail-action-secondary:active:not(:disabled) {
+  background-image: url('../assets/buttons/선택버튼_선택후.png');
 }
 
 button:disabled {
