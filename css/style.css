@@ -1,7 +1,9 @@
 @font-face {
-  font-family: 'Ridibatang';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
+  font-family: 'GalmuriMono11';
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri@v2.40.4/dist/GalmuriMono11.ttf') format('truetype');
   font-weight: normal;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -41,7 +43,7 @@
 }
 
 body {
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
   height: 100vh;
   overflow: hidden;
   background: var(--retro-cream);
@@ -508,7 +510,7 @@ body:has(#screen-main.active) #app-logo {
   border: 2px solid var(--retro-border);
   border-radius: 2px;
   padding: 0 12px;
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
   text-align: left;
   transition: background-color 0.35s ease, color 0.35s ease;
 }
@@ -625,7 +627,7 @@ body:has(#screen-main.active) #app-logo {
   min-width: 0;
   margin: 0;
   color: var(--orange);
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
   font-size: 0.85rem;
   font-weight: 900;
 }
@@ -635,7 +637,7 @@ body:has(#screen-main.active) #app-logo {
   align-items: baseline;
   gap: 7px;
   color: var(--ink);
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
   font-size: 0.85rem;
   font-weight: 900;
   line-height: 1;
@@ -689,7 +691,7 @@ body:has(#screen-main.active) #app-logo {
   align-items: center;
   gap: 12px;
   margin-top: 28px;
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
   font-weight: 800;
 }
 
@@ -759,7 +761,7 @@ body:has(#screen-main.active) #app-logo {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 34px;
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
 }
 
 .month-detail-analysis {
@@ -887,7 +889,7 @@ button:disabled {
   padding: 0;
   background: transparent;
   color: var(--ink);
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
 }
 
 .book-edit-form {
@@ -898,7 +900,7 @@ button:disabled {
   min-width: 0;
   margin-top: 52px;
   color: var(--ink);
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
 }
 
 .magazine-summary-label {
@@ -1065,7 +1067,7 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   margin-top: 30px;
-  font-family: 'Ridibatang', serif;
+  font-family: 'GalmuriMono11', monospace;
 }
 
 .month-search-overlay {
