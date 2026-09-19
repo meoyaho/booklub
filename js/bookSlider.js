@@ -239,7 +239,7 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
   hero.append(coverStage, info);
   scroll.append(createDetailTopbar(selectedPeriod, book, handlers), hero);
 
-  if (book.status === 'analyzed') {
+  if (book.status === 'analyzed' || book.status === 'reviewing') {
     const summary = document.createElement('section');
     summary.className = 'detail-section';
 
@@ -635,7 +635,7 @@ function renderMonthDetail(detail, book, selectedPeriod, handlers) {
   if (book) {
     if (handlers.view === 'book-edit' || handlers.view === 'edit-search') {
       renderBookEdit(detail, book, selectedPeriod, handlers);
-    } else if (handlers.view === 'review-entry' || book.status === 'reviewing') {
+    } else if (handlers.view === 'review-entry') {
       renderReviewEntry(detail, book, selectedPeriod, handlers);
     } else {
       renderDetailWithBook(detail, book, selectedPeriod, handlers);

@@ -538,7 +538,7 @@ async function runAnalysis(blob) {
         ? { ...entry, ...analysisUpdate }
         : entry
     ));
-    mainView = 'review-entry';
+    mainView = 'detail';
     mobilePage = 'detail';
     renderMain();
     showScreen('screen-main');
@@ -574,7 +574,7 @@ async function runAnalysis(blob) {
           : entry
       ));
       alert(`AI 분석에 실패해서 직접 작성 화면으로 이동합니다.\n${message}`);
-      mainView = 'review-entry';
+      mainView = 'book-edit';
       mobilePage = 'detail';
       renderMain();
       showScreen('screen-main');
