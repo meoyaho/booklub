@@ -535,30 +535,13 @@ function renderReviewEntry(detail, book, selectedPeriod, handlers) {
   detail.appendChild(scroll);
 }
 
-function removeSearchModal() {
-  document.getElementById('month-search-modal')?.remove();
-}
-
-function renderSearchModal(selectedPeriod, searchState, handlers) {
-  removeSearchModal();
-
+function renderSearchPanel(detail, selectedPeriod, searchState, handlers) {
   const monthTitle = `${selectedPeriod.year}년 ${selectedPeriod.month}월`;
-  const overlay = document.createElement('div');
-  overlay.id = 'month-search-modal';
-  overlay.className = 'month-search-overlay';
 
-  const modal = document.createElement('section');
-  modal.className = 'month-search-modal';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', `${monthTitle} 책 검색`);
-
-  const closeButton = document.createElement('button');
-  closeButton.className = 'month-search-close';
-  closeButton.type = 'button';
-  closeButton.textContent = '×';
-  closeButton.setAttribute('aria-label', '검색창 닫기');
-  closeButton.addEventListener('click', handlers.onSearchClose);
+  const panel = document.createElement('div');
+  panel.className = 'month-detail-scroll month-search-panel';
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', `${monthTitle} 책 검색`);
 
   const header = document.createElement('div');
   header.className = 'month-search-header';
@@ -566,7 +549,6 @@ function renderSearchModal(selectedPeriod, searchState, handlers) {
   const eyebrow = document.createElement('p');
   eyebrow.className = 'detail-eyebrow';
   eyebrow.textContent = monthTitle;
-
   header.appendChild(eyebrow);
 
   const form = document.createElement('form');
@@ -590,7 +572,7 @@ function renderSearchModal(selectedPeriod, searchState, handlers) {
     handlers.onSearch(input.value);
   });
 
-  modal.append(closeButton, header, form);
+  panel.append(header, form);
 
   if (searchState.results.length > 0) {
     const list = document.createElement('ul');
@@ -627,11 +609,20 @@ function renderSearchModal(selectedPeriod, searchState, handlers) {
       list.appendChild(item);
     });
 
-    modal.appendChild(list);
+    panel.appendChild(list);
+  } else if (searchState.status === 'empty') {
+    const empty = document.createElement('p');
+    empty.className = 'month-search-status';
+    empty.textContent = '검색 결과가 없습니다.';
+    panel.appendChild(empty);
+  } else if (searchState.status === 'error') {
+    const error = document.createElement('p');
+    error.className = 'month-search-status';
+    error.textContent = '검색 중 오류가 발생했습니다. 다시 시도해주세요.';
+    panel.appendChild(error);
   }
 
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
+  detail.appendChild(panel);
   input.focus();
 }
 
@@ -645,8 +636,6 @@ function renderMonthDetail(detail, book, selectedPeriod, handlers) {
     } else {
       renderDetailWithBook(detail, book, selectedPeriod, handlers);
     }
-  } else if (handlers.view !== 'search') {
-    removeSearchModal();
   }
 }
 
@@ -788,14 +777,12 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   container.classList.toggle('is-meeting-left', handlers.view === 'meeting-rules' || handlers.view === 'meeting-active');
 
   if (handlers.view === 'meeting-rules') {
-    removeSearchModal();
     renderMeetingLeft(container, handlers);
     renderMeetingRules(detail, handlers);
     return;
   }
 
   if (handlers.view === 'meeting-active') {
-    removeSearchModal();
     renderMeetingLeft(container, handlers);
     renderMeetingActive(detail, handlers);
     return;
@@ -842,10 +829,10 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   stack.appendChild(board);
   container.appendChild(stack);
 
-  renderMonthDetail(detail, selectedBook, selectedPeriod, handlers);
   if (handlers.view === 'search' || handlers.view === 'edit-search') {
-    renderSearchModal(selectedPeriod, handlers.searchState, handlers);
+    detail.innerHTML = '';
+    renderSearchPanel(detail, selectedPeriod, handlers.searchState, handlers);
   } else {
-    removeSearchModal();
+    renderMonthDetail(detail, selectedBook, selectedPeriod, handlers);
   }
 }

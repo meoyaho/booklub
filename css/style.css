@@ -1070,43 +1070,9 @@ button:disabled {
   font-family: 'GalmuriMono11', monospace;
 }
 
-.month-search-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.month-search-modal {
-  position: relative;
+.month-search-panel {
   display: flex;
   flex-direction: column;
-  width: 75vw;
-  max-width: calc(100vw - 24px);
-  height: 75vh;
-  max-height: calc(100vh - 24px);
-  padding: 48px;
-  border: 1px solid var(--ink);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.month-search-close {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  color: var(--ink);
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
 }
 
 .month-search-header {
@@ -1133,6 +1099,11 @@ button:disabled {
 
 .search-status {
   margin-top: 26px;
+}
+
+.month-search-status {
+  margin-top: 26px;
+  color: var(--muted);
 }
 
 .month-search-results {
@@ -1664,17 +1635,6 @@ button:disabled {
 
   .month-search-form {
     grid-template-columns: 1fr;
-  }
-
-  .month-search-modal {
-    width: 75vw;
-    height: 75vh;
-    padding: 28px 18px 22px;
-  }
-
-  .month-search-close {
-    top: 8px;
-    right: 10px;
   }
 
   .month-search-results {
