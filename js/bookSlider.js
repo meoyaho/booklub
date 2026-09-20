@@ -292,13 +292,13 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
     actions.className = 'month-detail-actions';
 
     const startButton = document.createElement('button');
-    startButton.className = 'detail-action-primary';
+    startButton.className = 'detail-action-primary btn-start-meeting';
     startButton.type = 'button';
     startButton.textContent = '독서모임 시작';
     startButton.addEventListener('click', () => handlers.onStartMeeting(book.id));
 
     const uploadButton = document.createElement('button');
-    uploadButton.className = 'detail-action-secondary';
+    uploadButton.className = 'detail-action-secondary btn-upload-recording';
     uploadButton.type = 'button';
     uploadButton.textContent = '녹음본 업로드';
     uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
@@ -398,13 +398,13 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   actionBar.className = 'month-detail-actions book-edit-actions';
 
   const startButton = document.createElement('button');
-  startButton.className = 'detail-action-primary';
+  startButton.className = 'detail-action-primary btn-start-meeting';
   startButton.type = 'button';
   startButton.textContent = '독서모임 시작';
   startButton.addEventListener('click', () => handlers.onStartMeeting(book.id));
 
   const uploadButton = document.createElement('button');
-  uploadButton.className = 'detail-action-secondary';
+  uploadButton.className = 'detail-action-secondary btn-upload-recording';
   uploadButton.type = 'button';
   uploadButton.textContent = '녹음본 업로드';
   uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
@@ -565,7 +565,7 @@ function renderSearchPanel(detail, selectedPeriod, searchState, handlers) {
   input.value = searchState.query || '';
 
   const button = document.createElement('button');
-  button.className = 'detail-action-primary';
+  button.className = 'detail-action-primary btn-search';
   button.type = 'submit';
   button.textContent = '검색';
   button.disabled = searchState.status === 'loading';
@@ -991,7 +991,7 @@ function renderRatingModal(book, handlers) {
 
   const submitButton = document.createElement('button');
   submitButton.type = 'submit';
-  submitButton.className = 'detail-action-primary';
+  submitButton.className = 'detail-action-primary btn-rating-submit';
   submitButton.textContent = '보내기';
 
   form.append(nameInput, picker, reviewInput, submitButton);

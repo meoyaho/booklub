@@ -229,11 +229,11 @@ body:has(#screen-main.active) .app-titlebar {
 .main-layout::before {
   content: '';
   position: fixed;
-  top: 0;
+  top: var(--titlebar-height);
   left: 50%;
   z-index: 40;
   width: 84px;
-  height: 100vh;
+  height: calc(100vh - var(--titlebar-height));
   transform: translateX(-50%);
   pointer-events: none;
   background:
@@ -246,7 +246,7 @@ body:has(#screen-main.active) .app-titlebar {
 
 .main-left {
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   background: var(--retro-cream);
   transition: background-color 0.35s ease;
@@ -502,7 +502,7 @@ body:has(#screen-main.active) #app-logo {
 
 .month-detail {
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
@@ -795,6 +795,58 @@ body:has(#screen-main.active) #app-logo {
   background: linear-gradient(180deg, #d8d4c8, #ffffff);
 }
 
+/*
+ * 전용 레퍼런스 이미지가 있는 버튼은 해당 이미지를 배경으로 사용한다.
+ * 라벨이 이미지에 이미 그려져 있으므로 DOM 텍스트는 color: transparent 로
+ * 시각적으로만 감춘다(스크린리더에는 그대로 노출).
+ * hover 규칙은 위의 .detail-action-* hover 단축 속성이 background-size/repeat 를
+ * 되돌리지 않도록 단축 속성 전체를 다시 선언한다.
+ */
+.btn-search,
+.btn-start-meeting,
+.btn-upload-recording,
+.btn-rating-submit {
+  border: none;
+  border-radius: 0;
+  color: transparent;
+}
+
+.btn-search {
+  background: url('../assets/buttons/검색버튼.png') center / 100% 100% no-repeat;
+}
+
+.btn-search:hover:not(:disabled),
+.btn-search:active:not(:disabled) {
+  background: url('../assets/buttons/검색_선택후.png') center / 100% 100% no-repeat;
+}
+
+.btn-start-meeting {
+  background: url('../assets/buttons/독서모임시작_선택전.png') center / 100% 100% no-repeat;
+}
+
+.btn-start-meeting:hover:not(:disabled),
+.btn-start-meeting:active:not(:disabled) {
+  background: url('../assets/buttons/독서모임시작_선택후.png') center / 100% 100% no-repeat;
+}
+
+.btn-upload-recording {
+  background: url('../assets/buttons/녹음본_업로드하기_선택전.png') center / 100% 100% no-repeat;
+}
+
+.btn-upload-recording:hover:not(:disabled),
+.btn-upload-recording:active:not(:disabled) {
+  background: url('../assets/buttons/녹음본업로드하기선택후.png') center / 100% 100% no-repeat;
+}
+
+.btn-rating-submit {
+  background: url('../assets/buttons/보내기_선택전.png') center / 100% 100% no-repeat;
+}
+
+.btn-rating-submit:hover:not(:disabled),
+.btn-rating-submit:active:not(:disabled) {
+  background: url('../assets/buttons/보내기_선택후.png') center / 100% 100% no-repeat;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -844,6 +896,7 @@ button:disabled {
   border: 2px solid var(--retro-border);
   border-radius: 4px;
   background: #eef3ff;
+  color: var(--ink);
 }
 
 .guide-bubble-line {
@@ -923,6 +976,10 @@ button:disabled {
   color: inherit;
 }
 
+.main-layout.is-meeting-active .block-fight-overlay .meeting-rules-list {
+  color: var(--ink);
+}
+
 .meeting-consent-copy {
   margin-top: 36px;
   font-size: clamp(1.2rem, 2vw, 2rem);
@@ -931,6 +988,15 @@ button:disabled {
 
 .meeting-confirm-btn {
   margin-top: 28px;
+  border: none;
+  border-radius: 0;
+  background: url('../assets/buttons/진짜_시작하기_선택전.png') center / 100% 100% no-repeat;
+  color: transparent;
+}
+
+.meeting-confirm-btn:hover:not(:disabled),
+.meeting-confirm-btn:active:not(:disabled) {
+  background: url('../assets/buttons/진짜시작하기_선택후.png') center / 100% 100% no-repeat;
 }
 
 .meeting-consent-placeholder {
@@ -954,6 +1020,12 @@ button:disabled {
   color: inherit;
 }
 
+.meeting-intro-page {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
 .meeting-warning {
   max-width: 560px;
   color: inherit;
@@ -965,9 +1037,15 @@ button:disabled {
 }
 
 .meeting-finish-btn {
-  border-color: currentColor;
-  background: transparent;
-  color: inherit;
+  border: none;
+  border-radius: 0;
+  background: url('../assets/buttons/완료_선택전.png') center / 100% 100% no-repeat;
+  color: transparent;
+}
+
+.meeting-finish-btn:hover:not(:disabled),
+.meeting-finish-btn:active:not(:disabled) {
+  background: url('../assets/buttons/완료_선택후.png') center / 100% 100% no-repeat;
 }
 
 .magazine-review-panel {
