@@ -424,18 +424,26 @@ function openUploadScreen(bookId = currentBookId) {
 
 function readAudioDurationSeconds(file) {
   return new Promise((resolve) => {
+    let settled = false;
     const audio = document.createElement('audio');
     const url = URL.createObjectURL(file);
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(result);
+    };
+    const timeoutId = setTimeout(() => finish(null), 5000);
     audio.preload = 'metadata';
     audio.src = url;
     audio.addEventListener('loadedmetadata', () => {
+      clearTimeout(timeoutId);
       const seconds = Number.isFinite(audio.duration) ? Math.round(audio.duration) : null;
-      URL.revokeObjectURL(url);
-      resolve(seconds);
+      finish(seconds);
     });
     audio.addEventListener('error', () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
+      clearTimeout(timeoutId);
+      finish(null);
     });
   });
 }
@@ -653,6 +661,7 @@ async function runAnalysis(blob, meta = {}) {
         renderMain();
       } catch (err) {
         console.warn('모임 날짜/토론시간 저장 실패', err);
+        alert('모임 날짜/토론시간을 저장하지 못했습니다. 나중에 다시 시도해주세요.');
       }
     }
   } catch (err) {
@@ -754,11 +763,14 @@ async function saveRatingReview(bookId, reviews) {
   }
 }
 
-async function shareBookCard(book) {
+async function shareBookCard(book, buttonEl) {
+  if (buttonEl) buttonEl.disabled = true;
   try {
     await shareOrDownloadCard(book);
   } catch (err) {
     alert('공유 카드를 만들지 못했습니다. 다시 시도해주세요.');
+  } finally {
+    if (buttonEl) buttonEl.disabled = false;
   }
 }
 

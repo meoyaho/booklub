@@ -15,10 +15,23 @@ function sanitizeFilename(name) {
 function loadCoverImage(url) {
   if (!url) return Promise.resolve(null);
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    const timeoutId = setTimeout(() => finish(null), 5000);
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      finish(img);
+    };
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      finish(null);
+    };
     img.src = url;
   });
 }

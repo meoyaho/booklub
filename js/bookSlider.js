@@ -177,7 +177,7 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
   return cell;
 }
 
-function createDetailTopbar(selectedPeriod, book, handlers) {
+function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false } = {}) {
   const topbar = document.createElement('div');
   topbar.className = 'detail-topbar';
 
@@ -198,15 +198,19 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   const actions = document.createElement('div');
   actions.className = 'detail-top-actions';
 
-  const shareButton = document.createElement('button');
-  shareButton.className = 'detail-top-action';
-  shareButton.type = 'button';
-  shareButton.textContent = '공유';
-  shareButton.addEventListener('click', () => handlers.onShareCard?.(book));
+  let shareButton = null;
+  let shareDivider = null;
+  if (showShare) {
+    shareButton = document.createElement('button');
+    shareButton.className = 'detail-top-action';
+    shareButton.type = 'button';
+    shareButton.textContent = '공유';
+    shareButton.addEventListener('click', (event) => handlers.onShareCard?.(book, event.currentTarget));
 
-  const shareDivider = document.createElement('span');
-  shareDivider.className = 'detail-top-separator';
-  shareDivider.textContent = '|';
+    shareDivider = document.createElement('span');
+    shareDivider.className = 'detail-top-separator';
+    shareDivider.textContent = '|';
+  }
 
   const editButton = document.createElement('button');
   editButton.className = 'detail-top-action';
@@ -224,7 +228,10 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   deleteButton.textContent = '삭제';
   deleteButton.addEventListener('click', () => handlers.onDeleteBook?.(book.id));
 
-  actions.append(shareButton, shareDivider, editButton, divider, deleteButton);
+  if (showShare) {
+    actions.append(shareButton, shareDivider);
+  }
+  actions.append(editButton, divider, deleteButton);
   topbar.append(left, actions);
   return topbar;
 }
@@ -273,7 +280,7 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
   }
 
   hero.append(coverStage, info);
-  scroll.append(createDetailTopbar(selectedPeriod, book, handlers), hero);
+  scroll.append(createDetailTopbar(selectedPeriod, book, handlers, { showShare: true }), hero);
 
   if (book.status === 'analyzed' || book.status === 'reviewing') {
     const summary = document.createElement('section');
@@ -1067,6 +1074,16 @@ export function renderUploadDateModal({ onConfirm, onCancel } = {}) {
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('aria-label', '모임 날짜 입력');
 
+  const closeButton = document.createElement('button');
+  closeButton.className = 'rating-modal-close';
+  closeButton.type = 'button';
+  closeButton.textContent = '×';
+  closeButton.setAttribute('aria-label', '닫기');
+  closeButton.addEventListener('click', () => {
+    removeUploadDateModal();
+    onCancel?.();
+  });
+
   const label = document.createElement('p');
   label.className = 'upload-date-label';
   label.textContent = '이 녹음본의 모임 날짜를 입력해주세요';
@@ -1107,8 +1124,14 @@ export function renderUploadDateModal({ onConfirm, onCancel } = {}) {
     onConfirm?.(value);
   });
 
-  modal.append(label, form);
+  modal.append(closeButton, label, form);
   overlay.appendChild(modal);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      removeUploadDateModal();
+      onCancel?.();
+    }
+  });
   document.body.appendChild(overlay);
   input.focus();
 }
