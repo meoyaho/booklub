@@ -30,6 +30,22 @@ function isSafeId(value) {
   return /^[A-Za-z0-9_-]{8,80}$/.test(value);
 }
 
+// NOTE: tightened from the brief's `(\.[a-z.]+)?` (unbounded dot-label suffix,
+// which lets "books.google.com.evil.com" pass) to a fixed 1-2 label TLD/ccTLD
+// suffix, so a malicious host cannot append extra labels to spoof the prefix.
+const ALLOWED_COVER_HOST_PATTERN = /^books\.google(\.[a-z]{2,3}){0,2}$|(^|\.)googleusercontent\.com$/i;
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
+function isAllowedCoverUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    return ALLOWED_COVER_HOST_PATTERN.test(url.hostname);
+  } catch (err) {
+    return false;
+  }
+}
+
 function safeBookPayload(book = {}) {
   return {
     title: asString(book.title) || '제목 없음',
@@ -367,5 +383,68 @@ export const analyzeRecording = onCall(
         await rm(tempDir, { recursive: true, force: true });
       }
     }
+  },
+);
+
+export const uploadBookCover = onCall(
+  {
+    region: REGION,
+    memory: '256MiB',
+    timeoutSeconds: 30,
+  },
+  async (request) => {
+    const data = request.data || {};
+    const clubId = asString(data.clubId);
+    const bookId = asString(data.bookId);
+    const imageUrl = asString(data.imageUrl);
+
+    if (!clubId || !bookId || !imageUrl) {
+      throw new HttpsError('invalid-argument', '독서모임 ID, 책 ID, 이미지 URL이 필요합니다.');
+    }
+    if (!isSafeId(clubId) || !isSafeId(bookId)) {
+      throw new HttpsError('invalid-argument', '올바르지 않은 독서모임 또는 책 ID입니다.');
+    }
+    if (!isAllowedCoverUrl(imageUrl)) {
+      throw new HttpsError('invalid-argument', '지원하지 않는 이미지 출처입니다.');
+    }
+
+    let response;
+    try {
+      response = await fetch(imageUrl);
+    } catch (err) {
+      throw new HttpsError('unavailable', '표지 이미지를 가져오지 못했습니다.');
+    }
+    if (!response.ok) {
+      throw new HttpsError('unavailable', '표지 이미지를 가져오지 못했습니다.');
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    if (!contentType.startsWith('image/')) {
+      throw new HttpsError('invalid-argument', '이미지 형식이 아닙니다.');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength === 0) {
+      throw new HttpsError('failed-precondition', '표지 이미지가 비어 있습니다.');
+    }
+    if (arrayBuffer.byteLength > MAX_COVER_BYTES) {
+      throw new HttpsError('invalid-argument', '표지 이미지가 너무 큽니다.');
+    }
+
+    const extension = (contentType.split('/')[1] || 'jpg').split('+')[0];
+    const storagePath = `covers/${clubId}/${bookId}.${extension}`;
+    const bucket = getStorage().bucket(STORAGE_BUCKET);
+    const file = bucket.file(storagePath);
+
+    await file.save(Buffer.from(arrayBuffer), {
+      metadata: {
+        contentType,
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
+    });
+
+    const url = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(storagePath)}?alt=media`;
+
+    return { storagePath, url, contentType };
   },
 );
