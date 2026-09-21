@@ -16,6 +16,7 @@ import { Recorder } from './recorder.js';
 import { calcAverage } from './ratings.js';
 import { computeGuideState, GUIDE_STATES } from './guideState.js';
 import { toLocalDateString } from './meetingFormat.js';
+import { shareOrDownloadCard } from './shareCard.js';
 
 const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 const MEETING_LEVELS = Object.keys(LEVEL_COLORS);
@@ -262,6 +263,7 @@ function renderMain() {
     onReviewSave: saveMagazineReviews,
     onEditContentSave: saveEditedBookContent,
     onRatingSave: saveRatingReview,
+    onShareCard: shareBookCard,
     onUploadRecording(bookId) {
       openUploadScreen(bookId);
     },
@@ -749,6 +751,14 @@ async function saveRatingReview(bookId, reviews) {
     renderMain();
   } catch (err) {
     alert('리뷰 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+  }
+}
+
+async function shareBookCard(book) {
+  try {
+    await shareOrDownloadCard(book);
+  } catch (err) {
+    alert('공유 카드를 만들지 못했습니다. 다시 시도해주세요.');
   }
 }
 

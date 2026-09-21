@@ -198,6 +198,16 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   const actions = document.createElement('div');
   actions.className = 'detail-top-actions';
 
+  const shareButton = document.createElement('button');
+  shareButton.className = 'detail-top-action';
+  shareButton.type = 'button';
+  shareButton.textContent = '공유';
+  shareButton.addEventListener('click', () => handlers.onShareCard?.(book));
+
+  const shareDivider = document.createElement('span');
+  shareDivider.className = 'detail-top-separator';
+  shareDivider.textContent = '|';
+
   const editButton = document.createElement('button');
   editButton.className = 'detail-top-action';
   editButton.type = 'button';
@@ -214,7 +224,7 @@ function createDetailTopbar(selectedPeriod, book, handlers) {
   deleteButton.textContent = '삭제';
   deleteButton.addEventListener('click', () => handlers.onDeleteBook?.(book.id));
 
-  actions.append(editButton, divider, deleteButton);
+  actions.append(shareButton, shareDivider, editButton, divider, deleteButton);
   topbar.append(left, actions);
   return topbar;
 }
