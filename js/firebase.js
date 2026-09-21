@@ -30,6 +30,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');
 
 const analyzeRecordingCallable = httpsCallable(functions, 'analyzeRecording');
+const uploadBookCoverCallable = httpsCallable(functions, 'uploadBookCover');
 
 function booksCollection(clubId) {
   if (!clubId) {
@@ -116,5 +117,10 @@ export async function uploadRecording(clubId, bookId, file) {
 
 export async function analyzeRecording(data) {
   const result = await analyzeRecordingCallable(data);
+  return result.data;
+}
+
+export async function uploadBookCover(clubId, bookId, imageUrl) {
+  const result = await uploadBookCoverCallable({ clubId, bookId, imageUrl });
   return result.data;
 }

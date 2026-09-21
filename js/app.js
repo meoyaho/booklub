@@ -8,6 +8,7 @@ import {
   deleteBook,
   uploadRecording,
   analyzeRecording,
+  uploadBookCover,
 } from './firebase.js';
 import { renderBookSlider, renderUploadDateModal } from './bookSlider.js';
 import { searchBooks } from './search.js';
@@ -301,6 +302,24 @@ async function handleMonthSearch(query) {
   renderMain();
 }
 
+function syncBookCoverToStorage(bookId, imageUrl) {
+  if (!imageUrl || !currentClubId || !bookId) return;
+
+  uploadBookCover(currentClubId, bookId, imageUrl)
+    .then((result) => {
+      if (!result?.url) return;
+      return updateBook(currentClubId, bookId, { thumbnail: result.url }).then(() => {
+        allBooks = allBooks.map((entry) => (
+          entry.id === bookId ? { ...entry, thumbnail: result.url } : entry
+        ));
+        renderMain();
+      });
+    })
+    .catch((err) => {
+      console.warn('표지 이미지를 Storage에 저장하지 못했습니다', err);
+    });
+}
+
 async function addSearchResultToMonth(book) {
   if (!currentClubId) return null;
 
@@ -329,6 +348,7 @@ async function addSearchResultToMonth(book) {
     allBooks = allBooks.map((entry) => (
       entry.id === bookId ? { ...entry, ...replacement } : entry
     ));
+    syncBookCoverToStorage(bookId, replacement.thumbnail);
     currentBookId = bookId;
     editingBookId = null;
     mobilePage = 'detail';
@@ -348,6 +368,7 @@ async function addSearchResultToMonth(book) {
     ...periodData,
   });
 
+  syncBookCoverToStorage(bookId, book.thumbnail);
   currentBookId = bookId;
   mainView = 'detail';
   mobilePage = 'detail';
