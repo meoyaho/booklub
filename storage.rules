@@ -10,5 +10,10 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.resource.size < 50 * 1024 * 1024 && request.resource.contentType.matches('audio/.*');
     }
+
+    match /covers/{clubId}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
