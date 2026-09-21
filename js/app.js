@@ -15,6 +15,7 @@ import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
 import { calcAverage } from './ratings.js';
 import { computeGuideState, GUIDE_STATES } from './guideState.js';
+import { toLocalDateString } from './meetingFormat.js';
 
 const LEVEL_COLORS = { quiet: '#4caf50', moderate: '#ffc107', loud: '#f44336' };
 const MEETING_LEVELS = Object.keys(LEVEL_COLORS);
@@ -32,6 +33,7 @@ let guideState = GUIDE_STATES.NONE;
 let guideStateSetAt = 0;
 const GUIDE_MIN_DISPLAY_MS = 3000;
 let uploadedFile = null;
+let meetingStartedAt = null;
 const today = new Date();
 let selectedPeriod = {
   year: today.getFullYear(),
@@ -508,6 +510,7 @@ async function startMeeting() {
   lastEncourageAt = null;
   guideState = GUIDE_STATES.NONE;
   guideStateSetAt = 0;
+  meetingStartedAt = Date.now();
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
   currentRecorder = new Recorder(meetingStream);
@@ -534,7 +537,15 @@ async function finishMeeting(event) {
     mainView = 'detail';
     setLogoMode('docked');
     renderMain();
-    await runAnalysis(blob);
+
+    const meta = {};
+    if (meetingStartedAt) {
+      meta.meetingDate = toLocalDateString(new Date(meetingStartedAt));
+      meta.discussionDurationSeconds = Math.round((Date.now() - meetingStartedAt) / 1000);
+    }
+    meetingStartedAt = null;
+
+    await runAnalysis(blob, meta);
   } catch (err) {
     if (event?.target) event.target.disabled = false;
   }
@@ -559,7 +570,7 @@ async function resetMeetingAfterFight() {
   openMeetingRules();
 }
 
-async function runAnalysis(blob) {
+async function runAnalysis(blob, meta = {}) {
   if (!blob?.size) {
     alert('녹음본 파일이 비어 있습니다. 다시 녹음하거나 다른 음성 파일을 올려주세요.');
     return;
@@ -609,6 +620,21 @@ async function runAnalysis(blob) {
     mobilePage = 'detail';
     renderMain();
     showScreen('screen-main');
+
+    if (meta.meetingDate || meta.discussionDurationSeconds != null) {
+      const extra = {};
+      if (meta.meetingDate) extra.meetingDate = meta.meetingDate;
+      if (meta.discussionDurationSeconds != null) extra.discussionDurationSeconds = meta.discussionDurationSeconds;
+      try {
+        await updateBook(currentClubId, currentBookId, extra);
+        allBooks = allBooks.map((entry) => (
+          entry.id === currentBookId ? { ...entry, ...extra } : entry
+        ));
+        renderMain();
+      } catch (err) {
+        console.warn('모임 날짜/토론시간 저장 실패', err);
+      }
+    }
   } catch (err) {
     const message = (err?.message || '').trim() || '다시 시도해주세요.';
 
@@ -627,6 +653,8 @@ async function runAnalysis(blob) {
           analysisFailed: true,
           analysisError: message,
         },
+        ...(meta.meetingDate ? { meetingDate: meta.meetingDate } : {}),
+        ...(meta.discussionDurationSeconds != null ? { discussionDurationSeconds: meta.discussionDurationSeconds } : {}),
       };
 
       try {
