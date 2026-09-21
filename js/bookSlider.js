@@ -1014,6 +1014,69 @@ function renderRatingModal(book, handlers) {
   nameInput.focus();
 }
 
+function removeUploadDateModal() {
+  document.getElementById('upload-date-modal')?.remove();
+}
+
+export function renderUploadDateModal({ onConfirm, onCancel } = {}) {
+  removeUploadDateModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'upload-date-modal';
+  overlay.className = 'rating-modal-overlay';
+
+  const modal = document.createElement('section');
+  modal.className = 'rating-modal upload-date-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', '모임 날짜 입력');
+
+  const label = document.createElement('p');
+  label.className = 'upload-date-label';
+  label.textContent = '이 녹음본의 모임 날짜를 입력해주세요';
+
+  const form = document.createElement('form');
+  form.className = 'upload-date-form';
+
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'upload-date-input';
+  input.required = true;
+  const today = new Date();
+  input.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const actions = document.createElement('div');
+  actions.className = 'upload-date-actions';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.className = 'detail-action-secondary';
+  cancelButton.textContent = '취소';
+  cancelButton.addEventListener('click', () => {
+    removeUploadDateModal();
+    onCancel?.();
+  });
+
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'submit';
+  confirmButton.className = 'detail-action-primary';
+  confirmButton.textContent = '확인';
+
+  actions.append(cancelButton, confirmButton);
+  form.append(input, actions);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = input.value;
+    removeUploadDateModal();
+    onConfirm?.(value);
+  });
+
+  modal.append(label, form);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  input.focus();
+}
+
 export function renderBookSlider(books, selectedPeriod, handlers) {
   const container = document.getElementById('book-slider');
   const detail = document.getElementById('month-detail');

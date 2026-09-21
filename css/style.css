@@ -1484,6 +1484,30 @@ button:disabled {
   justify-self: end;
 }
 
+.upload-date-label {
+  margin-bottom: 16px;
+  font-weight: 800;
+}
+
+.upload-date-form {
+  display: grid;
+  gap: 14px;
+}
+
+.upload-date-input {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0 10px;
+  font-family: inherit;
+}
+
+.upload-date-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 
 @media (max-width: 760px) {
   .main-left-stack .inline-app-logo {

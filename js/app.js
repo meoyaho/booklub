@@ -9,7 +9,7 @@ import {
   uploadRecording,
   analyzeRecording,
 } from './firebase.js';
-import { renderBookSlider } from './bookSlider.js';
+import { renderBookSlider, renderUploadDateModal } from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
@@ -420,6 +420,24 @@ function openUploadScreen(bookId = currentBookId) {
   fileInput.click();
 }
 
+function readAudioDurationSeconds(file) {
+  return new Promise((resolve) => {
+    const audio = document.createElement('audio');
+    const url = URL.createObjectURL(file);
+    audio.preload = 'metadata';
+    audio.src = url;
+    audio.addEventListener('loadedmetadata', () => {
+      const seconds = Number.isFinite(audio.duration) ? Math.round(audio.duration) : null;
+      URL.revokeObjectURL(url);
+      resolve(seconds);
+    });
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    });
+  });
+}
+
 function handleDecibelLevel(level) {
   if (level !== meetingLevel) {
     meetingLevel = level;
@@ -782,15 +800,23 @@ document.getElementById('upload-file-input').addEventListener('change', async (e
   uploadedFile = e.target.files[0] || null;
   if (!uploadedFile) return;
   const fileToUpload = uploadedFile;
-  try {
-    await runAnalysis(fileToUpload);
-    uploadedFile = null;
-  } catch (err) {
-    // runAnalysis already alerted the user and returned them to the main screen.
-    uploadedFile = null;
-  } finally {
-    e.target.value = '';
-  }
+  e.target.value = '';
+
+  const discussionDurationSeconds = await readAudioDurationSeconds(fileToUpload);
+
+  renderUploadDateModal({
+    onConfirm: async (meetingDate) => {
+      uploadedFile = null;
+      try {
+        await runAnalysis(fileToUpload, { meetingDate, discussionDurationSeconds });
+      } catch (err) {
+        // runAnalysis already alerted the user and returned them to the main screen.
+      }
+    },
+    onCancel() {
+      uploadedFile = null;
+    },
+  });
 });
 
 document.getElementById('club-create-form')?.addEventListener('submit', handleClubCreate);
