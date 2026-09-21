@@ -1,4 +1,6 @@
 // js/bookSlider.js
+import { formatDurationSeconds, formatMeetingDate } from './meetingFormat.js';
+
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MEETING_RULES = [
   '싸우지 않습니다.',
@@ -93,6 +95,22 @@ function createStars(rating = 0) {
 
   stars.append(empty, fill);
   return stars;
+}
+
+function createMetaRow(label, value) {
+  const row = document.createElement('p');
+  row.className = 'detail-meta-row';
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'detail-meta-label';
+  labelSpan.textContent = label;
+
+  const valueSpan = document.createElement('span');
+  valueSpan.className = 'detail-meta-value';
+  valueSpan.textContent = value;
+
+  row.append(labelSpan, valueSpan);
+  return row;
 }
 
 function createCover(book, className) {
@@ -236,6 +254,14 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
   ratingRow.addEventListener('click', () => renderRatingModal(book, handlers));
 
   info.append(title, authors, ratingRow);
+
+  if (book.discussionDurationSeconds != null) {
+    info.appendChild(createMetaRow('토론시간', formatDurationSeconds(book.discussionDurationSeconds)));
+  }
+  if (book.meetingDate) {
+    info.appendChild(createMetaRow('날짜', formatMeetingDate(book.meetingDate)));
+  }
+
   hero.append(coverStage, info);
   scroll.append(createDetailTopbar(selectedPeriod, book, handlers), hero);
 

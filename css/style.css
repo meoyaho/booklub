@@ -740,6 +740,23 @@ body:has(#screen-main.active) #app-logo {
   font-size: 1.3rem;
 }
 
+.detail-meta-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.detail-meta-label {
+  min-width: 64px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.detail-meta-value {
+  color: var(--ink);
+}
+
 .detail-section {
   margin-top: 52px;
   padding-top: 0;
