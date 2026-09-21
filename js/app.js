@@ -304,6 +304,7 @@ async function handleMonthSearch(query) {
 
 function syncBookCoverToStorage(bookId, imageUrl) {
   if (!imageUrl || !currentClubId || !bookId) return;
+  if (imageUrl.includes('firebasestorage.googleapis.com')) return;
 
   uploadBookCover(currentClubId, bookId, imageUrl)
     .then((result) => {

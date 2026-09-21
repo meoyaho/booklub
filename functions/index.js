@@ -30,20 +30,68 @@ function isSafeId(value) {
   return /^[A-Za-z0-9_-]{8,80}$/.test(value);
 }
 
-// NOTE: tightened from the brief's `(\.[a-z.]+)?` (unbounded dot-label suffix,
-// which lets "books.google.com.evil.com" pass) to a fixed 1-2 label TLD/ccTLD
-// suffix, so a malicious host cannot append extra labels to spoof the prefix.
-const ALLOWED_COVER_HOST_PATTERN = /^books\.google(\.[a-z]{2,3}){0,2}$|(^|\.)googleusercontent\.com$/i;
+// NOTE: 패턴 매칭(정규식)은 가변 접미사 때문에 계속 우회가 가능했다
+// (예: books.google.abc.org 처럼 공격자가 등록 가능한 도메인이 통과).
+// 인증 없는 함수가 임의 URL을 서버에서 가져오는 구조이므로,
+// 허용 호스트는 전부 리터럴 값으로 고정한 완전 일치 allowlist 로만 판단한다.
+const ALLOWED_COVER_HOSTS = new Set([
+  'books.google.com',
+  'books.google.co.kr',
+  'books.google.co.jp',
+  'books.google.co.uk',
+  'books.google.de',
+  'books.google.fr',
+  'books.google.ca',
+  'books.google.com.au',
+  'books.googleusercontent.com',
+]);
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
+const CONTENT_TYPE_EXTENSIONS = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
 
 function isAllowedCoverUrl(value) {
   try {
     const url = new URL(value);
     if (url.protocol !== 'https:') return false;
-    return ALLOWED_COVER_HOST_PATTERN.test(url.hostname);
+    return ALLOWED_COVER_HOSTS.has(url.hostname.toLowerCase());
   } catch (err) {
     return false;
   }
+}
+
+async function readLimitedBody(response, maxBytes) {
+  const contentLengthHeader = response.headers.get('content-length');
+  const declaredLength = contentLengthHeader ? Number(contentLengthHeader) : null;
+  if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new HttpsError('invalid-argument', '표지 이미지가 너무 큽니다.');
+  }
+
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > maxBytes) {
+      throw new HttpsError('invalid-argument', '표지 이미지가 너무 큽니다.');
+    }
+    return Buffer.from(arrayBuffer);
+  }
+
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new HttpsError('invalid-argument', '표지 이미지가 너무 큽니다.');
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
 }
 
 function safeBookPayload(book = {}) {
@@ -408,43 +456,46 @@ export const uploadBookCover = onCall(
       throw new HttpsError('invalid-argument', '지원하지 않는 이미지 출처입니다.');
     }
 
+    // 리다이렉트를 따라가면 최종 URL이 allowlist 밖(내부 주소 등)이 될 수 있으므로
+    // 자동 추적을 끄고 3xx 응답 자체를 거부한다.
     let response;
     try {
-      response = await fetch(imageUrl);
+      response = await fetch(imageUrl, { redirect: 'manual' });
     } catch (err) {
+      throw new HttpsError('unavailable', '표지 이미지를 가져오지 못했습니다.');
+    }
+    if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
       throw new HttpsError('unavailable', '표지 이미지를 가져오지 못했습니다.');
     }
     if (!response.ok) {
       throw new HttpsError('unavailable', '표지 이미지를 가져오지 못했습니다.');
     }
 
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    if (!contentType.startsWith('image/')) {
-      throw new HttpsError('invalid-argument', '이미지 형식이 아닙니다.');
+    const rawContentType = response.headers.get('content-type') || '';
+    const normalizedContentType = rawContentType.split(';')[0].trim().toLowerCase();
+    const extension = CONTENT_TYPE_EXTENSIONS[normalizedContentType];
+    if (!extension) {
+      throw new HttpsError('invalid-argument', '지원하지 않는 이미지 형식입니다.');
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    if (arrayBuffer.byteLength === 0) {
+    const buffer = await readLimitedBody(response, MAX_COVER_BYTES);
+    if (buffer.length === 0) {
       throw new HttpsError('failed-precondition', '표지 이미지가 비어 있습니다.');
     }
-    if (arrayBuffer.byteLength > MAX_COVER_BYTES) {
-      throw new HttpsError('invalid-argument', '표지 이미지가 너무 큽니다.');
-    }
 
-    const extension = (contentType.split('/')[1] || 'jpg').split('+')[0];
     const storagePath = `covers/${clubId}/${bookId}.${extension}`;
     const bucket = getStorage().bucket(STORAGE_BUCKET);
     const file = bucket.file(storagePath);
 
-    await file.save(Buffer.from(arrayBuffer), {
+    await file.save(buffer, {
       metadata: {
-        contentType,
+        contentType: normalizedContentType,
         cacheControl: 'public, max-age=31536000, immutable',
       },
     });
 
     const url = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(storagePath)}?alt=media`;
 
-    return { storagePath, url, contentType };
+    return { storagePath, url, contentType: normalizedContentType };
   },
 );
