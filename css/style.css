@@ -19,8 +19,8 @@
   --green: #2f8f6b;
 
   --retro-cream: #ede8dc;
-  --retro-titlebar-start: #4a6fc0;
-  --retro-titlebar-end: #8fb3f0;
+  --retro-titlebar-start: #3f5d95;
+  --retro-titlebar-end: #9dc0e8;
   --retro-border: #8c8c84;
   --retro-warn-orange-start: #ffd9a0;
   --retro-warn-orange-end: #ff9a3d;
@@ -48,6 +48,28 @@ body {
   overflow: hidden;
   background: var(--retro-cream);
   color: var(--ink);
+}
+
+#book-slider::-webkit-scrollbar,
+.month-detail::-webkit-scrollbar {
+  width: 16px;
+}
+
+#book-slider::-webkit-scrollbar-track,
+.month-detail::-webkit-scrollbar-track {
+  background: #faf6eb;
+}
+
+#book-slider::-webkit-scrollbar-thumb,
+.month-detail::-webkit-scrollbar-thumb {
+  background: #ece9d8;
+  border: 1px solid var(--retro-border);
+}
+
+#book-slider,
+.month-detail {
+  scrollbar-color: #ece9d8 #faf6eb;
+  scrollbar-width: thin;
 }
 
 button,
@@ -189,7 +211,7 @@ button {
   height: var(--titlebar-height);
   padding: 0 16px;
   border-bottom: 2px solid var(--retro-border);
-  background: linear-gradient(180deg, var(--retro-titlebar-start), var(--retro-titlebar-end));
+  background: linear-gradient(90deg, var(--retro-titlebar-start), var(--retro-titlebar-end));
   color: #ffffff;
   font-weight: 900;
   font-size: 1.05rem;
@@ -219,37 +241,55 @@ body:has(#screen-main.active) .app-titlebar {
 .main-layout {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   width: 100%;
   height: calc(100vh - var(--titlebar-height));
   overflow: hidden;
   background: var(--retro-cream);
 }
 
-.main-layout::before {
-  content: '';
-  position: fixed;
-  top: var(--titlebar-height);
-  left: 50%;
-  z-index: 40;
-  width: 84px;
-  height: calc(100vh - var(--titlebar-height));
-  transform: translateX(-50%);
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.96) 0 14%, rgba(0, 0, 0, 0.82) 22%, rgba(0, 0, 0, 0.36) 42%, rgba(0, 0, 0, 0) 72%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='900' viewBox='0 0 84 900'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78 0.045' numOctaves='5' seed='12' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.65 -0.32'/%3E%3C/filter%3E%3Crect width='84' height='900' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.9) 48%, rgba(0, 0, 0, 0.96) 52%, rgba(255, 255, 255, 0));
-  background-blend-mode: normal, multiply, normal;
-  filter: contrast(145%);
-}
-
 .main-left {
+  position: relative;
   min-width: 0;
   height: 100%;
   overflow: hidden;
   background: var(--retro-cream);
   transition: background-color 0.35s ease;
+}
+
+.scroll-arrow-btn {
+  position: absolute;
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--retro-border);
+  border-radius: 0;
+  background: #ece9d8;
+  color: var(--ink);
+  font-size: 9px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.scroll-arrow-up {
+  top: 6px;
+  right: 4px;
+}
+
+.scroll-arrow-down {
+  bottom: 6px;
+  right: 4px;
+}
+
+.scroll-arrow-panel.scroll-arrow-up {
+  top: 8px;
+}
+
+.scroll-arrow-panel.scroll-arrow-down {
+  bottom: 8px;
 }
 
 .main-layout.is-meeting-active.meeting-level-quiet {
@@ -310,10 +350,12 @@ body:has(#screen-main.active) .app-titlebar {
 
 .inline-app-logo {
   display: block;
-  width: clamp(280px, 30vw, 420px);
+  width: clamp(180px, 70%, 320px);
   max-width: 100%;
   height: auto;
-  margin: 0 auto 24px;
+  margin: 0 auto 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--retro-border);
 }
 
 body:has(#screen-main.active) #app-logo {
@@ -380,8 +422,8 @@ body:has(#screen-main.active) #app-logo {
 
 .month-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(3, 108px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, 108px);
   gap: 7px;
   width: 100%;
 }
@@ -506,7 +548,7 @@ body:has(#screen-main.active) #app-logo {
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  background: #ffffff;
+  background: linear-gradient(180deg, #e7ecf2 0, #e7ecf2 110px, #ffffff 110px, #ffffff 100%);
   border: 2px solid var(--retro-border);
   border-radius: 2px;
   padding: 0 12px;
@@ -1476,6 +1518,11 @@ button:disabled {
     width: min(360px, calc(100vw - 32px));
   }
 
+  /* 모바일은 단일 컬럼이라 사이드바/패널 화살표가 같은 자리에 겹친다. 터치 스크롤로 충분하므로 숨긴다. */
+  .scroll-arrow-btn {
+    display: none;
+  }
+
   .club-create-form,
   .club-invite-row {
     grid-template-columns: minmax(0, 1fr);
@@ -1538,10 +1585,6 @@ button:disabled {
     height: 100svh;
     min-height: 100svh;
     overflow: hidden;
-  }
-
-  .main-layout::before {
-    display: none;
   }
 
   .main-layout.is-meeting-active {

@@ -768,6 +768,19 @@ document.getElementById('upload-file-input').addEventListener('change', async (e
 document.getElementById('club-create-form')?.addEventListener('submit', handleClubCreate);
 document.getElementById('club-copy-btn')?.addEventListener('click', copyInviteLink);
 
+document.getElementById('sidebar-scroll-up')?.addEventListener('click', () => {
+  document.getElementById('book-slider')?.scrollBy({ top: -80, behavior: 'smooth' });
+});
+document.getElementById('sidebar-scroll-down')?.addEventListener('click', () => {
+  document.getElementById('book-slider')?.scrollBy({ top: 80, behavior: 'smooth' });
+});
+document.getElementById('panel-scroll-up')?.addEventListener('click', () => {
+  document.getElementById('month-detail')?.scrollBy({ top: -80, behavior: 'smooth' });
+});
+document.getElementById('panel-scroll-down')?.addEventListener('click', () => {
+  document.getElementById('month-detail')?.scrollBy({ top: 80, behavior: 'smooth' });
+});
+
 if (currentClubId) {
   subscribeCurrentClub();
   renderMain();
