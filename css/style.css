@@ -69,7 +69,6 @@ body {
 #book-slider,
 .month-detail {
   scrollbar-color: #ece9d8 #faf6eb;
-  scrollbar-width: thin;
 }
 
 button,
@@ -548,7 +547,7 @@ body:has(#screen-main.active) #app-logo {
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  background: linear-gradient(180deg, #e7ecf2 0, #e7ecf2 110px, #ffffff 110px, #ffffff 100%);
+  background: #ffffff;
   border: 2px solid var(--retro-border);
   border-radius: 2px;
   padding: 0 12px;
@@ -1282,6 +1281,8 @@ button:disabled {
 .month-search-panel {
   display: flex;
   flex-direction: column;
+  /* 옅은 파랑 헤더 띠는 검색 화면에만 적용 (레퍼런스: 책 검색창.jpg) */
+  background: linear-gradient(180deg, #e7ecf2 0, #e7ecf2 110px, #ffffff 110px, #ffffff 100%);
 }
 
 .month-search-header {
