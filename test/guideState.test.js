@@ -4,12 +4,9 @@ import {
   computeGuideState,
   GUIDE_STATES,
   QUIET_HELP_MS,
-  LOUD_WARN_MS,
-  LOUD_BLOCK_MS,
-  ENCOURAGE_INTERVAL_MS,
 } from '../js/guideState.js';
 
-test('quiet: 임계값 미만이면 NONE', () => {
+test('quiet: 침묵 1분 전에는 ENCOURAGE', () => {
   const now = 100000;
   const state = computeGuideState({
     level: 'quiet',
@@ -17,10 +14,10 @@ test('quiet: 임계값 미만이면 NONE', () => {
     now,
     lastEncourageAt: null,
   });
-  assert.equal(state, GUIDE_STATES.NONE);
+  assert.equal(state, GUIDE_STATES.ENCOURAGE);
 });
 
-test('quiet: 8초 이상 지속되면 IDLE_HELP', () => {
+test('quiet: 침묵이 1분 이상 지속되면 IDLE_HELP', () => {
   const now = 100000;
   const state = computeGuideState({
     level: 'quiet',
@@ -31,68 +28,42 @@ test('quiet: 8초 이상 지속되면 IDLE_HELP', () => {
   assert.equal(state, GUIDE_STATES.IDLE_HELP);
 });
 
-test('loud: 5초 미만이면 NONE', () => {
+test('moderate: 낮은 기준 이상 높은 기준 미만이면 계속 WARN_LOUD', () => {
   const now = 100000;
   const state = computeGuideState({
-    level: 'loud',
-    levelSinceMs: now - (LOUD_WARN_MS - 1),
+    level: 'moderate',
+    levelSinceMs: now,
     now,
-    lastEncourageAt: null,
-  });
-  assert.equal(state, GUIDE_STATES.NONE);
-});
-
-test('loud: 5초 이상 15초 미만이면 WARN_LOUD', () => {
-  const now = 100000;
-  const state = computeGuideState({
-    level: 'loud',
-    levelSinceMs: now - LOUD_WARN_MS,
-    now,
-    lastEncourageAt: null,
   });
   assert.equal(state, GUIDE_STATES.WARN_LOUD);
 });
 
-test('loud: 15초 이상이면 BLOCK_FIGHT', () => {
+test('moderate: 오래 지속되어도 WARN_LOUD', () => {
+  const now = 100000;
+  const state = computeGuideState({
+    level: 'moderate',
+    levelSinceMs: 0,
+    now,
+  });
+  assert.equal(state, GUIDE_STATES.WARN_LOUD);
+});
+
+test('loud: 높은 기준 이상이면 즉시 BLOCK_FIGHT', () => {
   const now = 100000;
   const state = computeGuideState({
     level: 'loud',
-    levelSinceMs: now - LOUD_BLOCK_MS,
+    levelSinceMs: now,
     now,
-    lastEncourageAt: null,
   });
   assert.equal(state, GUIDE_STATES.BLOCK_FIGHT);
 });
 
-test('moderate: lastEncourageAt이 null이면 바로 ENCOURAGE', () => {
+test('알 수 없는 레벨은 ENCOURAGE', () => {
   const now = 100000;
   const state = computeGuideState({
-    level: 'moderate',
+    level: 'unknown',
     levelSinceMs: now - 1000,
     now,
-    lastEncourageAt: null,
-  });
-  assert.equal(state, GUIDE_STATES.ENCOURAGE);
-});
-
-test('moderate: 마지막 격려 후 interval 미만이면 NONE', () => {
-  const now = 100000;
-  const state = computeGuideState({
-    level: 'moderate',
-    levelSinceMs: now - 1000,
-    now,
-    lastEncourageAt: now - (ENCOURAGE_INTERVAL_MS - 1),
-  });
-  assert.equal(state, GUIDE_STATES.NONE);
-});
-
-test('moderate: 마지막 격려 후 interval 이상이면 다시 ENCOURAGE', () => {
-  const now = 100000;
-  const state = computeGuideState({
-    level: 'moderate',
-    levelSinceMs: now - 1000,
-    now,
-    lastEncourageAt: now - ENCOURAGE_INTERVAL_MS,
   });
   assert.equal(state, GUIDE_STATES.ENCOURAGE);
 });

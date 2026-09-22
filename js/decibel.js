@@ -1,5 +1,5 @@
-export const THRESHOLD_QUIET_DB = -35;
-export const THRESHOLD_LOUD_DB = -18;
+export const THRESHOLD_QUIET_DB = -25;
+export const THRESHOLD_LOUD_DB = -5;
 
 export function rmsToDb(rms) {
   if (rms <= 0) return -Infinity;

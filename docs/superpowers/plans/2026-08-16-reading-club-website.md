@@ -86,7 +86,7 @@ git commit -m "chore: scaffold project and node test runner"
 **Interfaces:**
 - Produces:
   - `rmsToDb(rms: number): number` — RMS(0~1)를 dBFS로 변환, `rms <= 0`이면 `-Infinity`
-  - `THRESHOLD_LOUD_DB: number` (= -18), `THRESHOLD_QUIET_DB: number` (= -35)
+  - `THRESHOLD_LOUD_DB: number` (= -5), `THRESHOLD_QUIET_DB: number` (= -25)
   - `classifyLevel(db: number): 'quiet' | 'moderate' | 'loud'`
   - `calcAverage(reviews: {rating:number, review:string}[]): number` — 소수 첫째 자리 반올림, 빈 배열이면 0
   - `generateMockSummary(bookTitle: string): string` — 결정론적 템플릿 문자열
@@ -129,8 +129,8 @@ Expected: FAIL — `Cannot find module '../js/decibel.js'`
 
 ```javascript
 // js/decibel.js
-export const THRESHOLD_QUIET_DB = -35;
-export const THRESHOLD_LOUD_DB = -18;
+export const THRESHOLD_QUIET_DB = -25;
+export const THRESHOLD_LOUD_DB = -5;
 
 export function rmsToDb(rms) {
   if (rms <= 0) return -Infinity;

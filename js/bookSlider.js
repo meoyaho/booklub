@@ -9,6 +9,12 @@ const MEETING_RULES = [
   '말 끊지 않습니다.',
   '딴짓하지 않습니다.',
 ];
+const MEETING_TOPIC_PROMPTS = [
+  '어떻게 읽었는지 서로 이야기해보기',
+  '가장 인상에 깊었던 페이지를 서로 이야기해보기',
+  '내가 별로라고 생각했던 점',
+  '내가 좋다고 생각했던점',
+];
 
 function toDate(value) {
   if (!value) return null;
@@ -114,17 +120,33 @@ function createMetaRow(label, value) {
 }
 
 function createCover(book, className) {
-  if (!book.thumbnail) {
+  const title = book.title || '제목 없음';
+  const createFallback = () => {
     const fallback = document.createElement('div');
     fallback.className = `${className} cover-fallback`;
-    fallback.textContent = book.title ? book.title.slice(0, 1) : '?';
+    fallback.setAttribute('role', 'img');
+    fallback.setAttribute('aria-label', `${title} 표지`);
+    fallback.title = title;
+
+    const text = document.createElement('span');
+    text.className = 'cover-fallback-title';
+    const letters = Array.from(title);
+    const limit = className === 'month-cover' ? 24 : 40;
+    const half = Math.floor((limit - 3) / 2);
+    text.textContent = letters.length > limit
+      ? `${letters.slice(0, half).join('')}...${letters.slice(-(limit - 3 - half)).join('')}`
+      : title;
+    fallback.appendChild(text);
     return fallback;
-  }
+  };
+
+  if (!book.thumbnail) return createFallback();
 
   const image = document.createElement('img');
   image.className = className;
   image.src = book.thumbnail;
-  image.alt = `${book.title || '책'} 표지`;
+  image.alt = `${title} 표지`;
+  image.addEventListener('error', () => image.replaceWith(createFallback()), { once: true });
   return image;
 }
 
@@ -142,12 +164,10 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
   if (!book) cell.classList.add('is-empty');
   if (isFuture) cell.classList.add('is-future');
 
-  if (!isFuture) {
-    const label = document.createElement('span');
-    label.className = 'month-label';
-    label.textContent = `${month}월`;
-    cell.appendChild(label);
-  }
+  cell.setAttribute('aria-pressed', String(selectedPeriod.year === year && selectedPeriod.month === month));
+  const label = document.createElement('span');
+  label.className = 'month-label';
+  label.textContent = `${month}월`;
 
   if (book) {
     const coverWrap = document.createElement('span');
@@ -155,15 +175,15 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
     coverWrap.appendChild(createCover(book, 'month-cover'));
     cell.appendChild(coverWrap);
 
-    const rating = createStars(book.avgRating);
-    rating.classList.add('month-stars');
-    cell.appendChild(rating);
   } else {
     const empty = document.createElement('span');
     empty.className = 'month-empty';
-    empty.textContent = '';
+    empty.textContent = '?';
+    empty.setAttribute('aria-hidden', 'true');
     cell.appendChild(empty);
   }
+
+  cell.appendChild(label);
 
   cell.addEventListener('click', () => {
     if (isFuture) return;
@@ -237,120 +257,121 @@ function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false 
 }
 
 function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
-  const scroll = document.createElement('div');
-  scroll.className = 'month-detail-scroll';
+  const page = document.createElement('div');
+  const completed = book.status === 'analyzed' || book.status === 'reviewing';
+  const loading = handlers.view === 'analysis-loading';
+  page.className = `month-detail-scroll book-ready-page${completed && !loading ? ' book-completed-page' : ''}`;
 
   const hero = document.createElement('div');
-  hero.className = 'detail-hero';
+  hero.className = 'book-ready-hero';
+  const cover = createCover(book, 'month-detail-cover');
+  cover.classList.add('book-ready-cover');
 
-  const coverStage = document.createElement('div');
-  coverStage.className = 'detail-cover-stage';
-  coverStage.appendChild(createCover(book, 'month-detail-cover'));
-
-  const info = document.createElement('div');
-  info.className = 'detail-info';
+  const topbar = createDetailTopbar(selectedPeriod, book, handlers, { showShare: completed && !loading });
+  topbar.querySelector('.detail-eyebrow').textContent = `${selectedPeriod.year}. ${String(selectedPeriod.month).padStart(2, '0')}월`;
 
   const title = document.createElement('h1');
-  title.className = 'month-detail-title';
+  title.className = 'book-ready-title';
   title.textContent = book.title || '제목 없음';
 
-  const authors = document.createElement('p');
-  authors.className = 'month-detail-authors';
-  authors.textContent = book.authors || '작가 정보 없음';
+  const authors = createMetaRow('저자', book.authors || '작가 정보 없음');
+  authors.classList.add('book-ready-authors');
 
-  const ratingRow = document.createElement('button');
-  ratingRow.type = 'button';
-  ratingRow.className = 'detail-rating-row detail-rating-trigger';
-  ratingRow.setAttribute('aria-label', '총점 및 리뷰 보기');
-  ratingRow.appendChild(createStars(book.avgRating));
+  const rating = document.createElement('div');
+  rating.className = 'book-ready-rating';
+  const ratingLabel = document.createElement('span');
+  ratingLabel.textContent = '총점';
+  const ratingButton = document.createElement('button');
+  ratingButton.type = 'button';
+  ratingButton.className = 'detail-rating-trigger book-ready-rating-button';
+  ratingButton.setAttribute('aria-label', '총점 및 리뷰 보기');
+  const ratingValue = document.createElement('span');
+  ratingValue.className = 'book-ready-rating-value';
+  ratingValue.textContent = String(Number(book.avgRating) || 0);
+  ratingButton.append(createStars(book.avgRating), ratingValue);
+  ratingButton.addEventListener('click', () => renderRatingModal(book, handlers));
+  rating.append(ratingLabel, ratingButton);
 
-  const ratingText = document.createElement('span');
-  ratingText.textContent = Number(book.avgRating || 0).toFixed(1);
-  ratingRow.appendChild(ratingText);
+  const info = document.createElement('div');
+  info.className = 'book-overview-info';
+  info.append(topbar, title, authors, rating);
+  hero.append(cover, info);
+  page.appendChild(hero);
 
-  ratingRow.addEventListener('click', () => renderRatingModal(book, handlers));
+  if (loading) {
+    const status = document.createElement('p');
+    status.className = 'book-ready-empty-summary';
+    status.setAttribute('role', 'status');
+    status.textContent = '분석중';
+    page.appendChild(status);
+  } else if (completed) {
+    const duration = createMetaRow('토론시간', book.discussionDurationSeconds == null
+      ? '기록 없음' : formatDurationSeconds(book.discussionDurationSeconds));
+    duration.classList.add('book-completed-meta');
+    const date = createMetaRow('날짜', formatMeetingDate(book.meetingDate) || '기록 없음');
+    date.classList.add('book-completed-meta');
+    info.append(duration, date);
 
-  info.append(title, authors, ratingRow);
-
-  if (book.discussionDurationSeconds != null) {
-    info.appendChild(createMetaRow('토론시간', formatDurationSeconds(book.discussionDurationSeconds)));
-  }
-  if (book.meetingDate) {
-    info.appendChild(createMetaRow('날짜', formatMeetingDate(book.meetingDate)));
-  }
-
-  hero.append(coverStage, info);
-  scroll.append(createDetailTopbar(selectedPeriod, book, handlers, { showShare: true }), hero);
-
-  if (book.status === 'analyzed' || book.status === 'reviewing') {
     const summary = document.createElement('section');
-    summary.className = 'detail-section';
-
+    summary.className = 'book-completed-summary';
+    const summaryHeading = document.createElement('h2');
+    summaryHeading.textContent = '요약';
     const summaryText = document.createElement('p');
-    summaryText.className = 'detail-body-copy';
+    summaryText.className = 'book-summary-copy';
     summaryText.textContent = book.summary || '요약이 아직 없습니다.';
+    summary.append(summaryHeading, summaryText);
+    page.appendChild(summary);
 
-    summary.appendChild(summaryText);
-    scroll.appendChild(summary);
+    if (book.reviews?.length) {
+      const reviews = document.createElement('section');
+      reviews.className = 'book-completed-reviews';
 
-    const reviews = document.createElement('section');
-    reviews.className = 'detail-section';
+      const reviewList = document.createElement('ul');
+      reviewList.className = 'month-review-list';
+      (book.reviews || []).forEach((review) => {
+        const item = document.createElement('li');
+        item.className = 'review-display-row';
 
-    const reviewList = document.createElement('ul');
-    reviewList.className = 'month-review-list';
-    (book.reviews || []).forEach((review) => {
-      const item = document.createElement('li');
-      item.className = 'review-display-row';
+        const reviewName = document.createElement('strong');
+        reviewName.className = 'reviewer-name';
+        reviewName.textContent = review.name || '익명';
 
-      const reviewName = document.createElement('strong');
-      reviewName.className = 'reviewer-name';
-      reviewName.textContent = review.name || '익명';
+        const reviewStars = createStars(review.rating);
+        reviewStars.classList.add('review-stars');
 
-      const reviewStars = createStars(review.rating);
-      reviewStars.classList.add('review-stars');
+        const reviewText = document.createElement('p');
+        reviewText.className = 'detail-body-copy';
+        reviewText.textContent = review.review || '리뷰가 비어 있습니다.';
 
-      const reviewText = document.createElement('p');
-      reviewText.className = 'detail-body-copy';
-      reviewText.textContent = review.review || '리뷰가 비어 있습니다.';
-
-      item.append(reviewName, reviewStars, reviewText);
-      reviewList.appendChild(item);
-    });
-    reviews.appendChild(reviewList);
-    scroll.appendChild(reviews);
-  } else if (handlers.view === 'analysis-loading') {
-    const actions = document.createElement('div');
-    actions.className = 'month-detail-actions month-detail-analysis';
-
-    const loading = document.createElement('p');
-    loading.className = 'month-analysis-copy';
-    loading.textContent = '분석중';
-    loading.setAttribute('role', 'status');
-    loading.setAttribute('aria-live', 'polite');
-
-    actions.appendChild(loading);
-    scroll.appendChild(actions);
+        item.append(reviewName, reviewStars, reviewText);
+        reviewList.appendChild(item);
+      });
+      reviews.appendChild(reviewList);
+      page.appendChild(reviews);
+    }
   } else {
     const actions = document.createElement('div');
-    actions.className = 'month-detail-actions';
-
+    actions.className = 'book-ready-actions';
     const startButton = document.createElement('button');
     startButton.className = 'detail-action-primary btn-start-meeting';
     startButton.type = 'button';
     startButton.textContent = '독서모임 시작';
     startButton.addEventListener('click', () => handlers.onStartMeeting(book.id));
-
     const uploadButton = document.createElement('button');
     uploadButton.className = 'detail-action-secondary btn-upload-recording';
     uploadButton.type = 'button';
     uploadButton.textContent = '녹음본 업로드';
     uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
-
     actions.append(startButton, uploadButton);
-    scroll.appendChild(actions);
-  }
 
-  detail.appendChild(scroll);
+    const emptySummary = document.createElement('p');
+    emptySummary.className = 'book-ready-empty-summary';
+    emptySummary.append('아직 요약이 없어요!', document.createElement('br'), '독서모임을 통해서 기록해보세요');
+
+    info.appendChild(actions);
+    page.appendChild(emptySummary);
+  }
+  detail.appendChild(page);
 }
 
 function createReviewFormRow(review = {}) {
@@ -595,15 +616,24 @@ function renderSearchPanel(detail, selectedPeriod, searchState, handlers) {
 
   const eyebrow = document.createElement('p');
   eyebrow.className = 'detail-eyebrow';
-  eyebrow.textContent = monthTitle;
-  header.appendChild(eyebrow);
+  eyebrow.textContent = `${selectedPeriod.year}. ${String(selectedPeriod.month).padStart(2, '0')}월`;
+  const topbar = document.createElement('div');
+  topbar.className = 'detail-top-left';
+  const backButton = document.createElement('button');
+  backButton.type = 'button';
+  backButton.className = 'mobile-detail-back';
+  backButton.setAttribute('aria-label', '달력으로 돌아가기');
+  backButton.addEventListener('click', () => handlers.onMobileBack?.());
+  topbar.append(backButton, eyebrow);
+  header.appendChild(topbar);
 
   const form = document.createElement('form');
   form.className = 'month-search-form';
 
   const input = document.createElement('input');
   input.className = 'month-search-input';
-  input.type = 'text';
+  input.type = 'search';
+  input.setAttribute('aria-label', '책 제목 검색');
   input.placeholder = '책 제목을 검색하세요';
   input.value = searchState.query || '';
 
@@ -619,7 +649,8 @@ function renderSearchPanel(detail, selectedPeriod, searchState, handlers) {
     handlers.onSearch(input.value);
   });
 
-  panel.append(header, form);
+  header.appendChild(form);
+  panel.appendChild(header);
 
   if (searchState.results.length > 0) {
     const list = document.createElement('ul');
@@ -627,36 +658,43 @@ function renderSearchPanel(detail, selectedPeriod, searchState, handlers) {
 
     searchState.results.forEach((book) => {
       const item = document.createElement('li');
-      const resultButton = document.createElement('button');
-      resultButton.className = 'search-result-btn';
-      resultButton.type = 'button';
-      resultButton.addEventListener('click', () => handlers.onSearchResult(book));
+      item.className = 'search-result-item';
+      item.appendChild(createCover(book, 'search-result-cover'));
 
-      if (book.thumbnail) {
-        resultButton.appendChild(createCover(book, 'search-result-cover'));
-      } else {
-        resultButton.classList.add('has-no-cover');
-      }
-
-      const resultText = document.createElement('span');
+      const resultText = document.createElement('div');
       resultText.className = 'search-result-text';
 
-      const resultTitle = document.createElement('strong');
+      const resultTitle = document.createElement('h2');
+      resultTitle.className = 'search-result-title';
       resultTitle.textContent = book.title || '제목 없음';
 
-      const resultAuthors = document.createElement('span');
-      resultAuthors.textContent = book.authors || '';
+      const authorRow = document.createElement('p');
+      authorRow.className = 'search-result-authors';
+      const authorLabel = document.createElement('span');
+      authorLabel.textContent = '저자';
+      const authorValue = document.createElement('span');
+      authorValue.textContent = book.authors || '정보 없음';
+      authorRow.append(authorLabel, authorValue);
 
-      resultText.appendChild(resultTitle);
-      if (book.authors) {
-        resultText.appendChild(resultAuthors);
-      }
-      resultButton.appendChild(resultText);
-      item.appendChild(resultButton);
+      const selectButton = document.createElement('button');
+      selectButton.className = 'search-result-select';
+      selectButton.type = 'button';
+      selectButton.textContent = '선택';
+      selectButton.setAttribute('aria-label', `${book.title || '제목 없음'} 선택`);
+      selectButton.addEventListener('click', () => handlers.onSearchResult(book));
+
+      resultText.append(resultTitle, authorRow, selectButton);
+      item.appendChild(resultText);
       list.appendChild(item);
     });
 
     panel.appendChild(list);
+  } else if (searchState.status === 'loading') {
+    const loading = document.createElement('p');
+    loading.className = 'month-search-status';
+    loading.setAttribute('role', 'status');
+    loading.textContent = '검색 중입니다...';
+    panel.appendChild(loading);
   } else if (searchState.status === 'empty') {
     const empty = document.createElement('p');
     empty.className = 'month-search-status';
@@ -773,7 +811,7 @@ function renderMeetingRules(detail, handlers) {
   page.appendChild(createMeetingCopy({
     includeConsent: true,
     onConfirm: handlers.onMeetingConsent,
-    className: 'mobile-meeting-copy',
+    className: 'meeting-rules-copy',
     notice: handlers.meetingPermissionMessage,
   }));
 
@@ -791,32 +829,19 @@ function createMeetingCopy({
 
   const title = document.createElement('h1');
   title.className = 'meeting-title';
-  title.textContent = '건전한 독서모임을 위한 수칙';
+  title.append('건전한', document.createElement('br'), '독서모임을 위한 수칙');
 
   const rules = createMeetingRulesList();
   copy.append(title, rules);
 
-  const prompt = document.createElement('p');
-  prompt.className = 'meeting-consent-copy';
-  prompt.textContent = '동의하시겠습니까?';
-
-  const confirmButton = document.createElement('button');
-  confirmButton.className = 'detail-action-primary meeting-confirm-btn';
-  confirmButton.type = 'button';
-  confirmButton.textContent = '진짜 시작하기!';
-
   if (includeConsent) {
+    const confirmButton = document.createElement('button');
+    confirmButton.className = 'detail-action-primary meeting-confirm-btn';
+    confirmButton.type = 'button';
+    confirmButton.textContent = '진짜 시작하기!';
     confirmButton.addEventListener('click', onConfirm);
-  } else {
-    prompt.classList.add('meeting-consent-placeholder');
-    confirmButton.classList.add('meeting-consent-placeholder');
-    confirmButton.disabled = true;
-    confirmButton.tabIndex = -1;
-    prompt.setAttribute('aria-hidden', 'true');
-    confirmButton.setAttribute('aria-hidden', 'true');
+    copy.appendChild(confirmButton);
   }
-
-  copy.append(prompt, confirmButton);
 
   if (notice) {
     const noticeCopy = document.createElement('p');
@@ -848,96 +873,214 @@ function createInlineLogo() {
   return logo;
 }
 
-function renderMeetingLeft(container, handlers) {
+function renderMeetingLeft(container, book, selectedPeriod, view = '') {
+  const usesMeetingBookLayout = view === 'meeting-rules' || view === 'meeting-active';
   const panel = document.createElement('div');
-  panel.className = 'meeting-left-panel desktop-meeting-copy';
+  panel.className = `meeting-left-panel${usesMeetingBookLayout ? ' is-active' : ''}`;
   panel.appendChild(createInlineLogo());
 
-  panel.appendChild(createMeetingCopy({
-    includeConsent: handlers.view === 'meeting-rules',
-    onConfirm: handlers.onMeetingConsent,
-    notice: handlers.meetingPermissionMessage,
-  }));
+  if (usesMeetingBookLayout) {
+    const title = document.createElement('p');
+    title.className = 'meeting-selected-title meeting-active-book-title';
+    title.textContent = book?.title || '선택한 책';
+    panel.appendChild(title);
+    if (book) panel.appendChild(createCover(book, 'meeting-selected-cover meeting-active-book-cover'));
+    container.appendChild(panel);
+    return;
+  }
+
+  const month = document.createElement('p');
+  month.className = 'meeting-selected-month';
+  month.textContent = `${selectedPeriod.month}월`;
+
+  const card = document.createElement('div');
+  card.className = 'meeting-selected-book';
+  if (book) {
+    card.appendChild(createCover(book, 'meeting-selected-cover'));
+  }
+
+  const title = document.createElement('p');
+  title.className = 'meeting-selected-title';
+  title.textContent = book?.title || '선택한 책';
+  card.appendChild(title);
+
+  panel.append(month, card);
 
   container.appendChild(panel);
 }
 
 const GUIDE_CHARACTER_CONTENT = {
   'idle-help': {
-    characterFile: '책5_도움.png',
-    lines: ['혹시 제가 필요할까요? 저는 여러분을 최대한 도와드릴수 있습니다!', '무슨말을 해야할까요? / 어떻게 시작해야돼? / 어쩌구... / 그냥 시작할게'],
-    boxClass: '',
+    characterFile: '책3_검색.png',
+    lines: ['혹시 제가 필요할까요? 저는 여러분을 최대한 도와드릴수', '있습니다!'],
+    bodyLines: ['아무도 말을 하고 있지않습니다..'],
+    options: [
+      { label: '무슨말을 해야할까요?', action: 'help' },
+      { label: '어떻게 시작해야돼?', action: 'help' },
+      { label: '어쩌구...', action: 'dismiss' },
+      { label: '그냥 시작할게', action: 'dismiss' },
+    ],
   },
   encourage: {
     characterFile: '책7_엄지척.png',
-    lines: ['우와!! 지금 너무 좋은데요!! 서로 말도 잘하고 계세용!'],
-    boxClass: '',
+    lines: ['우와!! 지금 너무 좋은데요!!', '서로 말도 잘하고 계세용!'],
+    bodyLines: [],
   },
   'warn-loud': {
     characterFile: '책2_궁금.png',
-    lines: ['지금 너무 격해졌어요, 잠깐 쉬었다 해보세요!!'],
-    boxClass: 'guide-box-warn',
+    lines: ['지금 너무 격해졌어요', '잠깐 쉬었다 해보세요!!'],
+    bodyLines: ['아무도 말을 하고 있지 않습니다....', '목소리가 커지고 있습니다!'],
   },
   'block-fight': {
     characterFile: '책1_금지.png',
-    lines: ['건전한 독서모임을 위한 수칙을 다시 떠올려볼까요?'],
-    boxClass: 'guide-box-block',
+    lines: ['잠깐! 수칙을 다같이 외쳐보아요!'],
+    bodyLines: [],
   },
 };
 
-function renderMeetingActive(detail, handlers) {
+function renderMeetingActive(detail, selectedPeriod, handlers) {
   detail.innerHTML = '';
 
   const page = document.createElement('div');
   page.className = 'month-detail-scroll meeting-page meeting-active-page';
 
-  const copy = createMeetingCopy({ className: 'mobile-meeting-copy' });
+  const header = document.createElement('header');
+  header.className = 'meeting-active-header';
 
-  const warning = document.createElement('p');
-  warning.className = 'meeting-warning-banner';
-  warning.textContent = '건강한 독서모임을 응원합니다';
-  warning.setAttribute('aria-live', 'polite');
-  if (handlers.meetingLevel !== 'loud') {
-    warning.classList.add('hidden');
-  }
+  const date = document.createElement('p');
+  date.className = 'meeting-active-date';
+  date.textContent = `${selectedPeriod.year}. ${String(selectedPeriod.month).padStart(2, '0')}월`;
 
-  page.append(copy, warning);
+  const heading = document.createElement('h1');
+  heading.className = 'meeting-active-heading';
+  heading.textContent = '독서모임을 하고있습니다';
 
-  const guideContent = GUIDE_CHARACTER_CONTENT[handlers.guideState];
-  if (guideContent) {
-    const box = document.createElement('div');
-    box.className = `guide-recording-box ${guideContent.boxClass}`.trim();
-    box.appendChild(createGuideBubble({ characterFile: guideContent.characterFile, lines: guideContent.lines }));
-    page.appendChild(box);
-  }
+  const finishButton = document.createElement('button');
+  finishButton.className = 'meeting-finish-btn';
+  finishButton.type = 'button';
+  finishButton.textContent = '완료!';
+  finishButton.addEventListener('click', handlers.onMeetingFinish);
+  header.append(date, heading, finishButton);
 
-  if (handlers.guideState === 'block-fight') {
-    const resetPage = document.createElement('div');
-    resetPage.className = 'meeting-rules-page block-fight-overlay';
-    resetPage.appendChild(createMeetingRulesList());
+  const body = document.createElement('section');
+  body.className = 'meeting-recording-body';
+
+  const isBlocked = handlers.guideState === 'block-fight';
+  const showsWelcome = !isBlocked && handlers.meetingGuideView === 'welcome';
+  const showsTopicsGuide = !isBlocked && handlers.meetingGuideView === 'topics';
+  const showsTopics = !isBlocked
+    && (handlers.meetingGuideView === 'topics' || handlers.meetingGuideView === 'topics-hidden');
+  const dynamicGuide = !showsWelcome && !showsTopicsGuide
+    ? (GUIDE_CHARACTER_CONTENT[handlers.guideState] || GUIDE_CHARACTER_CONTENT.encourage)
+    : null;
+
+  if (isBlocked) {
+    page.classList.add('guide-state-block-fight');
+    const lockPanel = document.createElement('div');
+    lockPanel.className = 'block-fight-overlay';
+
+    const lockTitle = document.createElement('h2');
+    lockTitle.className = 'block-fight-title';
+    lockTitle.textContent = '건전한 독서모임을 위한 수칙';
 
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
-    resetButton.className = 'detail-action-primary';
+    resetButton.className = 'detail-action-primary block-fight-reset';
     resetButton.textContent = '다시 시작하기!';
     resetButton.addEventListener('click', () => handlers.onGuideReset?.());
 
-    resetPage.appendChild(resetButton);
-    page.appendChild(resetPage);
+    lockPanel.append(lockTitle, createMeetingRulesList(), resetButton);
+    body.appendChild(lockPanel);
+    finishButton.disabled = true;
   } else {
-    const finishButton = document.createElement('button');
-    finishButton.className = 'detail-action-primary meeting-finish-btn';
-    finishButton.type = 'button';
-    finishButton.textContent = '완료';
-    finishButton.addEventListener('click', handlers.onMeetingFinish);
-    page.appendChild(finishButton);
+    const status = document.createElement('p');
+    status.className = 'meeting-recording-status';
+    status.textContent = '녹음중입니다...';
+    body.appendChild(status);
+  }
+
+  if (dynamicGuide && !isBlocked) {
+    page.classList.add(`guide-state-${handlers.guideState === 'none' ? 'encourage' : handlers.guideState}`);
+    dynamicGuide.bodyLines.forEach((line) => {
+      const message = document.createElement('p');
+      message.className = 'meeting-state-message';
+      message.textContent = line;
+      body.appendChild(message);
+    });
+  }
+
+  if (showsTopics) {
+    const topics = document.createElement('ol');
+    topics.className = 'meeting-topic-list';
+    MEETING_TOPIC_PROMPTS.forEach((prompt) => {
+      const item = document.createElement('li');
+      item.textContent = prompt;
+      topics.appendChild(item);
+    });
+    body.appendChild(topics);
+  }
+
+  page.append(header, body);
+
+  if (isBlocked || dynamicGuide) {
+    const guideContent = isBlocked ? GUIDE_CHARACTER_CONTENT['block-fight'] : dynamicGuide;
+    const dock = document.createElement('aside');
+    dock.className = 'meeting-guide-dock';
+    const options = guideContent.options?.map(({ label, action }) => ({
+      label,
+      onClick: action === 'help'
+        ? () => handlers.onMeetingGuideHelp?.()
+        : () => handlers.onMeetingGuideDismiss?.(),
+    }));
+    dock.appendChild(createGuideBubble({
+      characterFile: guideContent.characterFile,
+      lines: guideContent.lines,
+      onSelect: options,
+    }));
+    page.appendChild(dock);
+  } else if (showsWelcome) {
+    const dock = document.createElement('aside');
+    dock.className = 'meeting-guide-dock';
+    dock.appendChild(createGuideBubble({
+      characterFile: '책6_인사.png',
+      lines: [
+        '안녕하세요?',
+        '독서모임 길잡이 입니다. 이 응용프로그램을 사용하는',
+        '여러분을 돕는게 제 일이죠.',
+      ],
+      onSelect: [
+        { label: '무슨말을 해야할까요?', onClick: () => handlers.onMeetingGuideHelp?.() },
+        { label: '그냥 시작할게', onClick: () => handlers.onMeetingGuideDismiss?.() },
+      ],
+    }));
+    page.appendChild(dock);
+  } else if (showsTopicsGuide) {
+    const dock = document.createElement('aside');
+    dock.className = 'meeting-guide-dock';
+    dock.appendChild(createGuideBubble({
+      characterFile: '책3_검색.png',
+      lines: [
+        '어떻게 시작해야할지 모르겠다면',
+        '제가 여기에 대화하기 좋은 키워드들을 둘러드릴게요.',
+        '키워드에 맞춰 이야기해보세요.',
+      ],
+      onSelect: [
+        { label: '고마워', onClick: () => handlers.onMeetingGuideDismiss?.(true) },
+      ],
+    }));
+    page.appendChild(dock);
   }
 
   detail.appendChild(page);
 }
 
 function removeRatingModal() {
-  document.getElementById('rating-modal')?.remove();
+  const overlay = document.getElementById('rating-modal');
+  if (!overlay) return;
+  const returnFocus = overlay.returnFocus;
+  overlay.remove();
+  if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+  else document.querySelector('.detail-rating-trigger')?.focus({ preventScroll: true });
 }
 
 function createStarPicker(initialValue, onChange) {
@@ -947,25 +1090,52 @@ function createStarPicker(initialValue, onChange) {
   picker.setAttribute('aria-label', '별점 선택');
 
   let value = initialValue;
-  const buttons = [1, 2, 3, 4, 5].map((n) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'rating-picker-star';
-    btn.textContent = n <= value ? '★' : '☆';
-    btn.setAttribute('aria-label', `${n}점`);
-    btn.addEventListener('click', () => {
-      value = n;
-      buttons.forEach((b, i) => {
-        b.textContent = i + 1 <= value ? '★' : '☆';
-      });
-      onChange(value);
+  const select = (rating) => {
+    value = rating;
+    buttons.forEach((button, index) => {
+      button.textContent = index + 1 <= value ? '★' : '☆';
+      button.setAttribute('aria-checked', String(index + 1 === value));
+      button.tabIndex = index + 1 === value ? 0 : -1;
     });
-    return btn;
+    onChange(value);
+  };
+  const buttons = [1, 2, 3, 4, 5].map((n) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'rating-picker-star';
+    button.setAttribute('role', 'radio');
+    button.setAttribute('aria-label', `${n}점`);
+    button.addEventListener('click', () => select(n));
+    button.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 1 : event.key === 'End' ? 5
+        : ((value - 1 + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : 4)) % 5) + 1;
+      select(next);
+      buttons[next - 1].focus();
+    });
+    return button;
   });
-
+  select(initialValue);
   picker.append(...buttons);
   picker.getValue = () => value;
   return picker;
+}
+
+function createRatingScrollFrame(scroller, label) {
+  const frame = document.createElement('div');
+  frame.className = 'rating-scroll-frame';
+  frame.appendChild(scroller);
+  for (const [direction, distance, text] of [['up', -120, '위로'], ['down', 120, '아래로']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `scroll-arrow-btn scroll-arrow-${direction}`;
+    button.setAttribute('aria-label', `${label} ${text} 스크롤`);
+    button.setAttribute('aria-controls', scroller.id);
+    button.addEventListener('click', () => scroller.scrollBy({ top: distance, behavior: 'smooth' }));
+    frame.appendChild(button);
+  }
+  return frame;
 }
 
 function renderRatingModal(book, handlers) {
@@ -974,22 +1144,28 @@ function renderRatingModal(book, handlers) {
   const overlay = document.createElement('div');
   overlay.id = 'rating-modal';
   overlay.className = 'rating-modal-overlay';
+  overlay.returnFocus = document.activeElement;
 
   const modal = document.createElement('section');
-  modal.className = 'rating-modal';
+  modal.className = 'rating-modal rating-window';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('aria-label', `${book.title || '이 책'} 감상평`);
 
+  const titlebar = document.createElement('div');
+  titlebar.className = 'rating-window-titlebar';
   const closeButton = document.createElement('button');
   closeButton.className = 'rating-modal-close';
   closeButton.type = 'button';
-  closeButton.textContent = '×';
   closeButton.setAttribute('aria-label', '닫기');
   closeButton.addEventListener('click', removeRatingModal);
+  titlebar.appendChild(closeButton);
 
   const list = document.createElement('ul');
+  list.id = 'rating-review-list';
   list.className = 'rating-modal-list';
+  list.tabIndex = 0;
+  list.setAttribute('aria-label', '감상평 목록');
   const reviews = book.reviews || [];
   if (reviews.length === 0) {
     const empty = document.createElement('li');
@@ -1000,15 +1176,12 @@ function renderRatingModal(book, handlers) {
     reviews.forEach((review) => {
       const item = document.createElement('li');
       item.className = 'rating-modal-item';
-
       const head = document.createElement('p');
       head.className = 'rating-modal-item-head';
-      head.textContent = `[${review.name || '익명'}]의 감상평 : ${'★'.repeat(Number(review.rating) || 0)}${'☆'.repeat(5 - (Number(review.rating) || 0))}`;
-
+      head.append(`[${review.name || '익명'}]의 감상평 : `, createStars(review.rating));
       const body = document.createElement('p');
       body.className = 'rating-modal-item-body';
       body.textContent = review.review || '';
-
       item.append(head, body);
       list.appendChild(item);
     });
@@ -1016,45 +1189,65 @@ function renderRatingModal(book, handlers) {
 
   const form = document.createElement('form');
   form.className = 'rating-modal-form';
-
+  const toolbar = document.createElement('div');
+  toolbar.className = 'rating-compose-toolbar';
+  const nameLabel = document.createElement('label');
+  nameLabel.className = 'rating-name-label';
+  nameLabel.textContent = '이름';
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.className = 'rating-modal-name';
-  nameInput.placeholder = '이름';
   nameInput.setAttribute('aria-label', '이름');
   nameInput.required = true;
+  nameLabel.appendChild(nameInput);
 
-  const reviewInput = document.createElement('input');
-  reviewInput.type = 'text';
+  const reviewInput = document.createElement('textarea');
+  reviewInput.id = 'rating-review-draft';
   reviewInput.className = 'rating-modal-review';
-  reviewInput.placeholder = '한줄 감상평';
+  reviewInput.placeholder = '감상평을 남겨주세요';
   reviewInput.setAttribute('aria-label', '감상평');
 
   const picker = createStarPicker(5, () => {});
-
   const submitButton = document.createElement('button');
   submitButton.type = 'submit';
   submitButton.className = 'detail-action-primary btn-rating-submit';
   submitButton.textContent = '보내기';
-
-  form.append(nameInput, picker, reviewInput, submitButton);
+  toolbar.append(nameLabel, picker, submitButton);
+  form.append(toolbar, createRatingScrollFrame(reviewInput, '감상평 입력'));
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const name = nameInput.value.trim();
     if (!name) return;
-
     const newReview = { name, rating: picker.getValue(), review: reviewInput.value.trim() };
     handlers.onRatingSave(book.id, [...(book.reviews || []), newReview]);
     removeRatingModal();
   });
 
-  modal.append(closeButton, list, form);
+  modal.append(titlebar, createRatingScrollFrame(list, '감상평 목록'), form);
   overlay.appendChild(modal);
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) removeRatingModal();
   });
+  overlay.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      removeRatingModal();
+    } else if (event.key === 'Tab') {
+      const focusable = [...modal.querySelectorAll('button, input, textarea, [tabindex]')]
+        .filter((element) => !element.disabled && element.tabIndex >= 0);
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  });
   document.body.appendChild(overlay);
-  nameInput.focus();
+  nameInput.focus({ preventScroll: true });
 }
 
 function removeUploadDateModal() {
@@ -1146,24 +1339,26 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   const monthBooks = buildMonthBookMap(books);
   const selectedBook = monthBooks.get(periodKey(selectedPeriod.year, selectedPeriod.month));
 
+  const previousGrid = container.querySelector('.month-grid');
+  const previousScrollTop = previousGrid?.dataset.year === String(selectedPeriod.year) ? previousGrid.scrollTop : 0;
   container.innerHTML = '';
   container.classList.toggle('is-meeting-left', handlers.view === 'meeting-intro' || handlers.view === 'meeting-rules' || handlers.view === 'meeting-active');
 
   if (handlers.view === 'meeting-intro') {
-    renderMeetingLeft(container, handlers);
+    renderMeetingLeft(container, selectedBook, selectedPeriod, handlers.view);
     renderMeetingIntro(detail, handlers);
     return;
   }
 
   if (handlers.view === 'meeting-rules') {
-    renderMeetingLeft(container, handlers);
+    renderMeetingLeft(container, selectedBook, selectedPeriod, handlers.view);
     renderMeetingRules(detail, handlers);
     return;
   }
 
   if (handlers.view === 'meeting-active') {
-    renderMeetingLeft(container, handlers);
-    renderMeetingActive(detail, handlers);
+    renderMeetingLeft(container, selectedBook, selectedPeriod, handlers.view);
+    renderMeetingActive(detail, selectedPeriod, handlers);
     return;
   }
 
@@ -1199,14 +1394,30 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
 
   const grid = document.createElement('div');
   grid.className = 'month-grid';
+  grid.id = 'month-grid';
+  grid.dataset.year = String(selectedPeriod.year);
+  grid.setAttribute('aria-label', `${selectedPeriod.year}년 월별 도서`);
   MONTHS.forEach((month) => {
     const book = monthBooks.get(periodKey(selectedPeriod.year, month));
     grid.appendChild(createMonthCell(selectedPeriod.year, month, book, selectedPeriod, handlers));
   });
 
-  board.appendChild(grid);
+  const calendarFrame = document.createElement('div');
+  calendarFrame.className = 'calendar-scroll-frame';
+  calendarFrame.appendChild(grid);
+  for (const [direction, distance, label] of [['up', -160, '이전 달 보기'], ['down', 160, '다음 달 보기']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `scroll-arrow-btn scroll-arrow-${direction}`;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-controls', grid.id);
+    button.addEventListener('click', () => grid.scrollBy({ top: distance, behavior: 'smooth' }));
+    calendarFrame.appendChild(button);
+  }
+  board.appendChild(calendarFrame);
   stack.appendChild(board);
   container.appendChild(stack);
+  grid.scrollTop = previousScrollTop;
 
   if (handlers.view === 'search' || handlers.view === 'edit-search') {
     detail.innerHTML = '';

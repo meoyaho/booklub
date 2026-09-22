@@ -28,12 +28,9 @@ let allBooks = [];
 let meetingStream = null;
 let decibelMonitor = null;
 let currentRecorder = null;
-let loudSinceMs = null;
 let levelSinceMs = Date.now();
-let lastEncourageAt = null;
 let guideState = GUIDE_STATES.NONE;
-let guideStateSetAt = 0;
-const GUIDE_MIN_DISPLAY_MS = 3000;
+let meetingGuideView = 'welcome';
 let uploadedFile = null;
 let meetingStartedAt = null;
 const today = new Date();
@@ -48,7 +45,6 @@ let monthSearch = {
   results: [],
 };
 let meetingLevel = 'quiet';
-let meetingWarningVisible = false;
 let meetingPermissionMessage = '';
 let mobilePage = 'calendar';
 let currentClubId = getClubIdFromUrl();
@@ -137,6 +133,7 @@ function syncMainLayoutState() {
 
   const isMeetingScreen = mainView === 'meeting-intro' || mainView === 'meeting-rules' || mainView === 'meeting-active';
   const isMobileDetailPage = !isMeetingScreen && mobilePage === 'detail';
+  layout.classList.toggle('is-meeting-intro', mainView === 'meeting-intro');
   layout.classList.toggle('is-meeting-rules', mainView === 'meeting-rules');
   layout.classList.toggle('is-meeting-active', mainView === 'meeting-active');
   layout.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
@@ -145,15 +142,6 @@ function syncMainLayoutState() {
   document.getElementById('screen-main')?.classList.toggle('is-meeting-screen', isMeetingScreen);
   document.getElementById('screen-main')?.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   updateMeetingLevelClass();
-}
-
-function setMeetingWarningVisible(visible) {
-  meetingWarningVisible = visible;
-  document.getElementById('meeting-warning')?.classList.toggle('hidden', !visible);
-}
-
-function setMeetingWarningBannerVisible(visible) {
-  document.querySelector('.meeting-warning-banner')?.classList.toggle('hidden', !visible);
 }
 
 async function startSplashAnimation() {
@@ -175,7 +163,7 @@ function handleAddClick(period) {
   if (period) selectedPeriod = period;
   currentBookId = null;
   editingBookId = null;
-  mobilePage = 'calendar';
+  mobilePage = 'detail';
   mainView = 'search';
   monthSearch = {
     query: '',
@@ -205,9 +193,9 @@ function renderMain() {
     view: mainView,
     searchState: monthSearch,
     meetingLevel,
-    meetingWarningVisible,
     meetingPermissionMessage,
     guideState,
+    meetingGuideView,
     mobilePage,
     onMonthSelect(period) {
       selectedPeriod = period;
@@ -215,7 +203,6 @@ function renderMain() {
       editingBookId = null;
       mobilePage = 'detail';
       mainView = 'detail';
-      meetingWarningVisible = false;
       meetingPermissionMessage = '';
       renderMain();
     },
@@ -225,7 +212,6 @@ function renderMain() {
       editingBookId = null;
       mobilePage = 'calendar';
       mainView = 'detail';
-      meetingWarningVisible = false;
       meetingPermissionMessage = '';
       renderMain();
     },
@@ -255,11 +241,23 @@ function renderMain() {
     onDeleteBook: deleteSelectedBook,
     onStartMeeting(bookId) {
       currentBookId = bookId;
-      openMeetingIntro();
+      openMeetingRules();
     },
     onIntroContinue: openMeetingRules,
     onMeetingConsent: startMeeting,
     onMeetingFinish: finishMeeting,
+    onMeetingGuideHelp() {
+      meetingGuideView = 'topics';
+      renderMain();
+    },
+    onMeetingGuideDismiss(keepTopics = false) {
+      meetingGuideView = keepTopics ? 'topics-hidden' : 'hidden';
+      if (!keepTopics && guideState === GUIDE_STATES.IDLE_HELP) {
+        levelSinceMs = Date.now();
+        guideState = GUIDE_STATES.ENCOURAGE;
+      }
+      renderMain();
+    },
     onGuideReset: resetMeetingAfterFight,
     onReviewSave: saveMagazineReviews,
     onEditContentSave: saveEditedBookContent,
@@ -476,31 +474,22 @@ function handleDecibelLevel(level) {
     levelSinceMs = Date.now();
   }
   updateMeetingLevelClass(level);
-  setMeetingWarningBannerVisible(level === 'loud');
-
-  if (level === 'loud') {
-    if (loudSinceMs === null) loudSinceMs = Date.now();
-    if (Date.now() - loudSinceMs > 3000) setMeetingWarningVisible(true);
-  } else {
-    loudSinceMs = null;
-    setMeetingWarningVisible(false);
-  }
 
   const now = Date.now();
   const nextGuideState = computeGuideState({
     level,
     levelSinceMs,
     now,
-    lastEncourageAt,
   });
-  const heldLongEnough = now - guideStateSetAt >= GUIDE_MIN_DISPLAY_MS;
-  const canChange = guideState !== GUIDE_STATES.BLOCK_FIGHT
-    && nextGuideState !== guideState
-    && (nextGuideState !== GUIDE_STATES.NONE || heldLongEnough);
-  if (canChange) {
+
+  if (guideState === GUIDE_STATES.BLOCK_FIGHT) return;
+
+  const introductoryGuideOpen = meetingGuideView === 'welcome' || meetingGuideView === 'topics';
+  if (introductoryGuideOpen && nextGuideState !== GUIDE_STATES.BLOCK_FIGHT) return;
+
+  if (nextGuideState !== guideState) {
     guideState = nextGuideState;
-    guideStateSetAt = now;
-    if (guideState === GUIDE_STATES.ENCOURAGE) lastEncourageAt = now;
+    if (guideState === GUIDE_STATES.BLOCK_FIGHT) meetingGuideView = 'hidden';
     renderMain();
   }
 }
@@ -514,13 +503,10 @@ function openMeetingIntro() {
 function openMeetingRules() {
   mainView = 'meeting-rules';
   meetingLevel = 'quiet';
-  meetingWarningVisible = false;
   meetingPermissionMessage = '';
-  loudSinceMs = null;
   levelSinceMs = Date.now();
-  lastEncourageAt = null;
   guideState = GUIDE_STATES.NONE;
-  guideStateSetAt = 0;
+  meetingGuideView = 'welcome';
   renderMain();
   showScreen('screen-main');
 }
@@ -541,7 +527,7 @@ function getMicrophoneErrorMessage(err) {
   return '마이크를 시작하지 못했습니다. 권한과 연결 상태를 확인해주세요.';
 }
 
-async function startMeeting() {
+async function startMeeting({ skipWelcome = false } = {}) {
   try {
     meetingPermissionMessage = '';
     meetingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -552,14 +538,11 @@ async function startMeeting() {
     showScreen('screen-main');
     return;
   }
-  loudSinceMs = null;
   meetingLevel = 'quiet';
-  meetingWarningVisible = false;
   meetingPermissionMessage = '';
   levelSinceMs = Date.now();
-  lastEncourageAt = null;
   guideState = GUIDE_STATES.NONE;
-  guideStateSetAt = 0;
+  meetingGuideView = skipWelcome ? 'hidden' : 'welcome';
   meetingStartedAt = Date.now();
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
@@ -577,13 +560,10 @@ async function finishMeeting(event) {
     decibelMonitor = null;
     meetingStream = null;
     currentRecorder = null;
-    loudSinceMs = null;
     meetingLevel = 'quiet';
-    meetingWarningVisible = false;
     levelSinceMs = Date.now();
-    lastEncourageAt = null;
     guideState = GUIDE_STATES.NONE;
-    guideStateSetAt = 0;
+    meetingGuideView = 'welcome';
     mainView = 'detail';
     setLogoMode('docked');
     renderMain();
@@ -612,12 +592,10 @@ async function resetMeetingAfterFight() {
   decibelMonitor = null;
   meetingStream = null;
   currentRecorder = null;
-  loudSinceMs = null;
   meetingLevel = 'quiet';
-  meetingWarningVisible = false;
   guideState = GUIDE_STATES.NONE;
-  guideStateSetAt = 0;
-  openMeetingRules();
+  meetingGuideView = 'hidden';
+  await startMeeting({ skipWelcome: true });
 }
 
 async function runAnalysis(blob, meta = {}) {
@@ -866,12 +844,6 @@ document.getElementById('upload-file-input').addEventListener('change', async (e
 document.getElementById('club-create-form')?.addEventListener('submit', handleClubCreate);
 document.getElementById('club-copy-btn')?.addEventListener('click', copyInviteLink);
 
-document.getElementById('sidebar-scroll-up')?.addEventListener('click', () => {
-  document.getElementById('book-slider')?.scrollBy({ top: -80, behavior: 'smooth' });
-});
-document.getElementById('sidebar-scroll-down')?.addEventListener('click', () => {
-  document.getElementById('book-slider')?.scrollBy({ top: 80, behavior: 'smooth' });
-});
 document.getElementById('panel-scroll-up')?.addEventListener('click', () => {
   document.getElementById('month-detail')?.scrollBy({ top: -80, behavior: 'smooth' });
 });
