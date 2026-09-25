@@ -1103,9 +1103,24 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
   }
 
   if (handlers.meetingLog?.length) {
+    const logPanel = document.createElement('div');
+    logPanel.className = 'meeting-log-panel';
+
+    const toggleButton = document.createElement('button');
+    toggleButton.type = 'button';
+    toggleButton.className = 'meeting-log-toggle';
+    toggleButton.textContent = handlers.meetingLogExpanded ? '기록 접기' : '기록 펼치기';
+    toggleButton.setAttribute('aria-expanded', String(!!handlers.meetingLogExpanded));
+    toggleButton.addEventListener('click', () => handlers.onMeetingLogToggle?.());
+    logPanel.appendChild(toggleButton);
+
+    const entriesToShow = handlers.meetingLogExpanded
+      ? handlers.meetingLog
+      : handlers.meetingLog.slice(-1);
+
     const log = document.createElement('ol');
     log.className = 'meeting-log';
-    handlers.meetingLog.forEach((entry) => {
+    entriesToShow.forEach((entry) => {
       const item = document.createElement('li');
       item.className = 'meeting-log-entry';
 
@@ -1120,7 +1135,9 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
       item.append(time, text);
       log.appendChild(item);
     });
-    body.appendChild(log);
+    logPanel.appendChild(log);
+
+    body.appendChild(logPanel);
   }
 
   page.append(header, body);

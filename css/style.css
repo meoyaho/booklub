@@ -167,6 +167,28 @@ button {
   width: clamp(90px, 12vw, 140px);
 }
 
+.splash-guide .detail-action-primary {
+  background: #d0ceca;
+  font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+}
+
+.splash-guide .detail-action-primary:hover:not(:disabled),
+.splash-guide .detail-action-primary:active:not(:disabled) {
+  background: #d0ceca;
+}
+
+.splash-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.splash-input-row input {
+  flex: 1;
+  min-width: 0;
+}
+
 #club-name-input,
 #club-invite-link {
   width: 100%;
@@ -1523,15 +1545,36 @@ button:disabled {
   margin-top: clamp(18px, 2.2vh, 32px);
 }
 
+.meeting-log-panel {
+  margin: clamp(28px, 3.4vh, 46px) 0 0;
+}
+
+.meeting-log-toggle {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: clamp(0.82rem, 1vw, 1rem);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.meeting-log-toggle:hover {
+  color: var(--ink);
+}
+
 .meeting-log {
   display: grid;
   gap: 8px;
-  margin: clamp(28px, 3.4vh, 46px) 0 0;
+  margin: 10px 0 0;
   padding: clamp(14px, 1.6vw, 22px) clamp(16px, 1.8vw, 24px);
   border: 2px solid #d8d8d0;
   border-radius: 6px;
   list-style: none;
   background: #f8f7f2;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 
 .meeting-log-entry {
@@ -2697,7 +2740,13 @@ button:disabled {
     display: block;
   }
 
-  .main-layout.is-meeting-rules .month-detail-scroll,
+  .main-layout.is-meeting-rules .month-detail-scroll {
+    height: 100%;
+    min-height: 0;
+    padding: 16px;
+    overflow: hidden;
+  }
+
   .main-layout.is-meeting-active .month-detail-scroll {
     height: 100%;
     min-height: 0;

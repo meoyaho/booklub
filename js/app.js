@@ -40,6 +40,7 @@ let guideState = GUIDE_STATES.NONE;
 let meetingGuideView = 'closed';
 let activeMeetingTopicIndex = null;
 let meetingLog = [];
+let meetingLogExpanded = false;
 let uploadedFile = null;
 let meetingStartedAt = null;
 const today = new Date();
@@ -169,6 +170,7 @@ function renderSplashGuide() {
 
     const form = document.createElement('form');
     form.id = 'club-create-form';
+    form.className = 'splash-input-row';
     form.addEventListener('submit', handleClubCreate);
 
     const input = document.createElement('input');
@@ -178,59 +180,56 @@ function renderSplashGuide() {
     input.autocomplete = 'off';
     form.appendChild(input);
 
-    const nameOptions = document.createElement('div');
-    nameOptions.className = 'guide-bubble-options';
     const submitBtn = document.createElement('button');
     submitBtn.id = 'club-create-btn';
     submitBtn.type = 'submit';
-    submitBtn.className = 'guide-bubble-option';
-    submitBtn.textContent = '만들기';
-    nameOptions.appendChild(submitBtn);
-    form.appendChild(nameOptions);
+    submitBtn.className = 'detail-action-primary';
+    submitBtn.textContent = '입력';
+    form.appendChild(submitBtn);
 
     bubble.appendChild(form);
   } else if (splashStep === 'link-ready' || splashStep === 'link-confirm') {
+    const linkRow = document.createElement('div');
+    linkRow.className = 'splash-input-row';
+
     const linkInput = document.createElement('input');
     linkInput.id = 'club-invite-link';
     linkInput.type = 'text';
     linkInput.readOnly = true;
     linkInput.value = generatedInviteLink;
     linkInput.setAttribute('aria-label', '초대 링크');
-    bubble.appendChild(linkInput);
-
-    const options = document.createElement('div');
-    options.className = 'guide-bubble-options';
+    linkRow.appendChild(linkInput);
 
     if (splashStep === 'link-ready') {
       bubble.appendChild(createGuideBubbleLine(
-        `앞으로 ${splashClubName}의 독서 모임 링크는 위 링크로만 접속할 수 있으므로, 조심히 보관해주세요`,
+        `앞으로 ${splashClubName}의 독서 모임 링크는 아래 링크로만 접속할 수 있으므로, 조심히 보관해주세요`,
       ));
 
       const ackBtn = document.createElement('button');
       ackBtn.type = 'button';
-      ackBtn.className = 'guide-bubble-option';
-      ackBtn.textContent = '알겠어, 복사할게';
+      ackBtn.className = 'detail-action-primary';
+      ackBtn.textContent = '복사';
       ackBtn.addEventListener('click', async () => {
         splashCopySucceeded = await copyInviteLink();
         splashStep = 'link-confirm';
         renderSplashGuide();
       });
-      options.appendChild(ackBtn);
+      linkRow.appendChild(ackBtn);
+      bubble.appendChild(linkRow);
     } else {
       bubble.appendChild(createGuideBubbleLine(
-        splashCopySucceeded ? '링크를 복사했어요!' : '복사에 실패했어요. 위 링크를 직접 복사해주세요.',
+        splashCopySucceeded ? '링크를 복사했어요!' : '복사에 실패했어요. 아래 링크를 직접 복사해주세요.',
       ));
       bubble.appendChild(createGuideBubbleLine('이제 입장해볼까요?'));
 
       const enterBtn = document.createElement('button');
       enterBtn.type = 'button';
-      enterBtn.className = 'guide-bubble-option';
-      enterBtn.textContent = '입장하기';
+      enterBtn.className = 'detail-action-primary';
+      enterBtn.textContent = '입장';
       enterBtn.addEventListener('click', enterCreatedClub);
-      options.appendChild(enterBtn);
+      linkRow.appendChild(enterBtn);
+      bubble.appendChild(linkRow);
     }
-
-    bubble.appendChild(options);
   }
 
   const icon = document.createElement('img');
@@ -370,6 +369,11 @@ function renderMain() {
     meetingGuideView,
     activeTopicIndex: activeMeetingTopicIndex,
     meetingLog,
+    meetingLogExpanded,
+    onMeetingLogToggle() {
+      meetingLogExpanded = !meetingLogExpanded;
+      renderMain();
+    },
     mobilePage,
     onMonthSelect(period) {
       selectedPeriod = period;
@@ -741,6 +745,7 @@ async function startMeeting({ skipWelcome = false } = {}) {
   meetingGuideView = skipWelcome ? 'hidden' : 'closed';
   activeMeetingTopicIndex = null;
   meetingLog = [];
+  meetingLogExpanded = false;
   meetingStartedAt = Date.now();
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
@@ -764,6 +769,7 @@ async function finishMeeting(event) {
     meetingGuideView = 'closed';
     activeMeetingTopicIndex = null;
     meetingLog = [];
+    meetingLogExpanded = false;
     mainView = 'detail';
     setLogoMode('docked');
     renderMain();
