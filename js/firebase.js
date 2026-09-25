@@ -6,6 +6,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  getDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -57,6 +58,12 @@ export async function createClub(name) {
     createdAt: serverTimestamp(),
   });
   return docRef.id;
+}
+
+export async function getClub(clubId) {
+  if (!clubId) return null;
+  const snap = await getDoc(doc(db, 'clubs', clubId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 export function subscribeBooks(clubId, callback) {

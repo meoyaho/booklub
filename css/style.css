@@ -2463,7 +2463,11 @@ button:disabled {
   .splash-guide .guide-bubble-wrap {
     max-width: min(360px, calc(100vw - 32px));
     flex-direction: column-reverse;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .splash-guide .guide-character {
+    align-self: center;
   }
 
   /* 모바일은 단일 컬럼이라 사이드바/패널 화살표가 같은 자리에 겹친다. 터치 스크롤로 충분하므로 숨긴다. */

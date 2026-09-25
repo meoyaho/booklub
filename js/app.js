@@ -2,6 +2,7 @@
 import { showScreen } from './screens.js';
 import {
   createClub,
+  getClub,
   subscribeBooks,
   addBook,
   updateBook,
@@ -117,6 +118,19 @@ async function handleClubCreate(event) {
   }
 }
 
+async function loadCurrentClubName() {
+  if (!currentClubId) return;
+  try {
+    const club = await getClub(currentClubId);
+    if (club?.name) {
+      splashClubName = club.name;
+      renderSplashGuide();
+    }
+  } catch (err) {
+    // 이름을 못 불러와도 기본 환영 문구로 진행한다.
+  }
+}
+
 function enterCreatedClub() {
   currentClubId = splashClubId;
   const url = new URL(window.location.href);
@@ -146,7 +160,10 @@ function renderSplashGuide() {
   bubble.className = 'guide-bubble';
 
   if (currentClubId || splashStep === 'welcome') {
-    bubble.appendChild(createGuideBubbleLine('환영합니다! 아이콘을 클릭해주세요'));
+    const welcomeText = currentClubId && splashClubName
+      ? `${splashClubName}, 환영합니다! 아이콘을 클릭해주세요`
+      : '환영합니다! 아이콘을 클릭해주세요';
+    bubble.appendChild(createGuideBubbleLine(welcomeText));
   } else if (splashStep === 'name-input') {
     bubble.appendChild(createGuideBubbleLine('독서 모임 이름을 입력해주세요'));
 
@@ -1045,4 +1062,5 @@ renderSplashGuide();
 if (currentClubId) {
   subscribeCurrentClub();
   renderMain();
+  loadCurrentClubName();
 }
