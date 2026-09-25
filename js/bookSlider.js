@@ -1,5 +1,5 @@
 // js/bookSlider.js
-import { formatDurationSeconds, formatMeetingDate } from './meetingFormat.js';
+import { formatDurationSeconds, formatMeetingDate, formatLogTimestamp } from './meetingFormat.js';
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MEETING_RULES = [
@@ -9,11 +9,23 @@ const MEETING_RULES = [
   '말 끊지 않습니다.',
   '딴짓하지 않습니다.',
 ];
-const MEETING_TOPIC_PROMPTS = [
+export const MEETING_TOPIC_PROMPTS = [
   '어떻게 읽었는지 서로 이야기해보기',
   '가장 인상에 깊었던 페이지를 서로 이야기해보기',
   '내가 별로라고 생각했던 점',
   '내가 좋다고 생각했던점',
+];
+const MEETING_TOPIC_DETAILS = [
+  '책을 언제, 어디서, 어떤 방식으로 읽었는지 편하게 이야기해보세요. 한번에 다 읽었는지, 나눠서 읽었는지도 좋은 이야깃거리가 돼요.',
+  '가장 기억에 남는 장면이나 문장을 찾아 함께 읽어보고, 왜 그 부분이 인상 깊었는지 이유를 나눠보세요.',
+  '이해가 잘 안 됐거나 아쉬웠던 부분, 동의하기 어려웠던 내용이 있다면 솔직하게 이야기해보세요.',
+  '마음에 들었던 부분이나 공감했던 내용, 새롭게 배운 점을 구체적으로 이야기해보세요.',
+];
+export const MEETING_TOPIC_QUESTIONS = [
+  '책을 어떻게 읽으셨나요?',
+  '가장 인상에 깊었던 페이지가 있었나요?',
+  '별로라고 생각했던 점이 있었나요?',
+  '좋았다고 생각했던 점이 있었나요?',
 ];
 
 function toDate(value) {
@@ -197,7 +209,7 @@ function createMonthCell(year, month, book, selectedPeriod, handlers) {
   return cell;
 }
 
-function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false } = {}) {
+function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false, editLabel = '수정', onEdit, onCancel } = {}) {
   const topbar = document.createElement('div');
   topbar.className = 'detail-topbar';
 
@@ -235,12 +247,26 @@ function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false 
   const editButton = document.createElement('button');
   editButton.className = 'detail-top-action';
   editButton.type = 'button';
-  editButton.textContent = '수정';
-  editButton.addEventListener('click', () => handlers.onEditBook?.(book.id));
+  editButton.textContent = editLabel;
+  editButton.addEventListener('click', () => (onEdit ? onEdit() : handlers.onEditBook?.(book.id)));
 
   const divider = document.createElement('span');
   divider.className = 'detail-top-separator';
   divider.textContent = '|';
+
+  let cancelButton = null;
+  let cancelDivider = null;
+  if (onCancel) {
+    cancelButton = document.createElement('button');
+    cancelButton.className = 'detail-top-action';
+    cancelButton.type = 'button';
+    cancelButton.textContent = '취소';
+    cancelButton.addEventListener('click', () => onCancel());
+
+    cancelDivider = document.createElement('span');
+    cancelDivider.className = 'detail-top-separator';
+    cancelDivider.textContent = '|';
+  }
 
   const deleteButton = document.createElement('button');
   deleteButton.className = 'detail-top-action';
@@ -251,7 +277,11 @@ function createDetailTopbar(selectedPeriod, book, handlers, { showShare = false 
   if (showShare) {
     actions.append(shareButton, shareDivider);
   }
-  actions.append(editButton, divider, deleteButton);
+  actions.append(editButton, divider);
+  if (onCancel) {
+    actions.append(cancelButton, cancelDivider);
+  }
+  actions.append(deleteButton);
   topbar.append(left, actions);
   return topbar;
 }
@@ -321,34 +351,6 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
     summaryText.textContent = book.summary || '요약이 아직 없습니다.';
     summary.append(summaryHeading, summaryText);
     page.appendChild(summary);
-
-    if (book.reviews?.length) {
-      const reviews = document.createElement('section');
-      reviews.className = 'book-completed-reviews';
-
-      const reviewList = document.createElement('ul');
-      reviewList.className = 'month-review-list';
-      (book.reviews || []).forEach((review) => {
-        const item = document.createElement('li');
-        item.className = 'review-display-row';
-
-        const reviewName = document.createElement('strong');
-        reviewName.className = 'reviewer-name';
-        reviewName.textContent = review.name || '익명';
-
-        const reviewStars = createStars(review.rating);
-        reviewStars.classList.add('review-stars');
-
-        const reviewText = document.createElement('p');
-        reviewText.className = 'detail-body-copy';
-        reviewText.textContent = review.review || '리뷰가 비어 있습니다.';
-
-        item.append(reviewName, reviewStars, reviewText);
-        reviewList.appendChild(item);
-      });
-      reviews.appendChild(reviewList);
-      page.appendChild(reviews);
-    }
   } else {
     const actions = document.createElement('div');
     actions.className = 'book-ready-actions';
@@ -420,14 +422,16 @@ function collectMagazineReviews(form) {
 
 function renderBookEdit(detail, book, selectedPeriod, handlers) {
   const scroll = document.createElement('div');
-  scroll.className = 'month-detail-scroll book-edit-page';
+  scroll.className = 'month-detail-scroll book-ready-page book-edit-page';
 
   const hero = document.createElement('div');
-  hero.className = 'detail-hero book-edit-hero';
+  hero.className = 'book-ready-hero';
 
   const coverStage = document.createElement('div');
-  coverStage.className = 'detail-cover-stage detail-cover-stage-editable';
-  coverStage.appendChild(createCover(book, 'month-detail-cover'));
+  coverStage.className = 'book-ready-cover-stage detail-cover-stage-editable';
+  const cover = createCover(book, 'month-detail-cover');
+  cover.classList.add('book-ready-cover');
+  coverStage.appendChild(cover);
 
   const coverEditButton = document.createElement('button');
   coverEditButton.className = 'cover-edit-btn';
@@ -436,30 +440,88 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   coverEditButton.addEventListener('click', () => handlers.onEditCover?.(book.id));
   coverStage.appendChild(coverEditButton);
 
-  const info = document.createElement('div');
-  info.className = 'detail-info';
+  const summaryInput = document.createElement('textarea');
+  summaryInput.className = 'magazine-summary-input';
+  summaryInput.value = book.summary || '';
+  summaryInput.placeholder = '요약';
+  summaryInput.setAttribute('aria-label', '요약');
+
+  const totalDurationSeconds = Math.max(0, Math.round(Number(book.discussionDurationSeconds) || 0));
+  const makeDurationInput = (value, label) => {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.value = String(value);
+    input.className = 'duration-edit-input';
+    input.setAttribute('aria-label', label);
+    return input;
+  };
+  const hoursInput = makeDurationInput(Math.floor(totalDurationSeconds / 3600), '시간');
+  const minutesInput = makeDurationInput(Math.floor((totalDurationSeconds % 3600) / 60), '분');
+  const secondsInput = makeDurationInput(totalDurationSeconds % 60, '초');
+
+  const durationRow = document.createElement('div');
+  durationRow.className = 'detail-meta-row book-completed-meta duration-edit-row';
+  const durationLabel = document.createElement('span');
+  durationLabel.className = 'detail-meta-label';
+  durationLabel.textContent = '토론시간';
+  const durationValue = document.createElement('span');
+  durationValue.className = 'detail-meta-value duration-edit-fields';
+  durationValue.append(hoursInput, '시간 ', minutesInput, '분 ', secondsInput, '초');
+  durationRow.append(durationLabel, durationValue);
+
+  const dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  dateInput.className = 'detail-meta-value date-edit-input';
+  dateInput.value = book.meetingDate || '';
+  dateInput.setAttribute('aria-label', '모임 날짜');
+
+  const dateRow = document.createElement('div');
+  dateRow.className = 'detail-meta-row book-completed-meta';
+  const dateLabel = document.createElement('span');
+  dateLabel.className = 'detail-meta-label';
+  dateLabel.textContent = '날짜';
+  dateRow.append(dateLabel, dateInput);
+
+  const topbar = createDetailTopbar(selectedPeriod, book, handlers, {
+    editLabel: '저장',
+    onEdit: () => {
+      const discussionDurationSeconds = (Number(hoursInput.value) || 0) * 3600
+        + (Number(minutesInput.value) || 0) * 60
+        + (Number(secondsInput.value) || 0);
+      handlers.onEditContentSave(book.id, summaryInput.value, book.reviews || [], {
+        meetingDate: dateInput.value,
+        discussionDurationSeconds,
+      });
+    },
+    onCancel: () => handlers.onCancelEdit?.(book.id),
+  });
+  topbar.querySelector('.detail-eyebrow').textContent = `${selectedPeriod.year}. ${String(selectedPeriod.month).padStart(2, '0')}월`;
 
   const title = document.createElement('h1');
-  title.className = 'month-detail-title';
+  title.className = 'book-ready-title';
   title.textContent = book.title || '제목 없음';
 
-  const authors = document.createElement('p');
-  authors.className = 'month-detail-authors';
-  authors.textContent = book.authors || '작가 정보 없음';
+  const authors = createMetaRow('저자', book.authors || '작가 정보 없음');
+  authors.classList.add('book-ready-authors');
 
-  const ratingRow = document.createElement('div');
-  ratingRow.className = 'detail-rating-row';
-  ratingRow.appendChild(createStars(book.avgRating));
-
-  const ratingText = document.createElement('span');
-  ratingText.textContent = Number(book.avgRating || 0).toFixed(1);
-  ratingRow.appendChild(ratingText);
-
-  info.append(title, authors, ratingRow);
-  hero.append(coverStage, info);
+  const rating = document.createElement('div');
+  rating.className = 'book-ready-rating';
+  const ratingLabel = document.createElement('span');
+  ratingLabel.textContent = '총점';
+  const ratingButton = document.createElement('button');
+  ratingButton.type = 'button';
+  ratingButton.className = 'detail-rating-trigger book-ready-rating-button';
+  ratingButton.setAttribute('aria-label', '총점 및 리뷰 보기');
+  const ratingValue = document.createElement('span');
+  ratingValue.className = 'book-ready-rating-value';
+  ratingValue.textContent = String(Number(book.avgRating) || 0);
+  ratingButton.append(createStars(book.avgRating), ratingValue);
+  ratingButton.addEventListener('click', () => renderRatingModal(book, handlers, { editable: true }));
+  rating.append(ratingLabel, ratingButton);
 
   const actionBar = document.createElement('div');
-  actionBar.className = 'month-detail-actions book-edit-actions';
+  actionBar.className = 'book-ready-actions book-edit-actions';
 
   const startButton = document.createElement('button');
   startButton.className = 'detail-action-primary btn-start-meeting';
@@ -475,46 +537,20 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
 
   actionBar.append(startButton, uploadButton);
 
-  const form = document.createElement('form');
-  form.className = 'book-edit-form';
+  const info = document.createElement('div');
+  info.className = 'book-overview-info';
+  info.append(topbar, title, authors, rating, durationRow, dateRow, actionBar);
+  hero.append(coverStage, info);
 
-  const summaryInput = document.createElement('textarea');
-  summaryInput.className = 'magazine-summary-input';
-  summaryInput.value = book.summary || '';
-  summaryInput.placeholder = '요약';
-  summaryInput.setAttribute('aria-label', '요약');
+  const form = document.createElement('div');
+  form.className = 'book-edit-form book-completed-summary';
 
-  const reviewForm = document.createElement('div');
-  reviewForm.className = 'magazine-review-form';
+  const summaryHeading = document.createElement('h2');
+  summaryHeading.textContent = '요약';
 
-  const existingReviews = book.reviews?.length ? book.reviews : Array.from({ length: 5 }, () => ({}));
-  existingReviews.forEach((review) => reviewForm.appendChild(createReviewFormRow(review)));
+  form.append(summaryHeading, summaryInput);
 
-  const actions = document.createElement('div');
-  actions.className = 'magazine-review-actions';
-
-  const addRowButton = document.createElement('button');
-  addRowButton.className = 'detail-action-secondary';
-  addRowButton.type = 'button';
-  addRowButton.textContent = '행 추가';
-  addRowButton.addEventListener('click', () => {
-    reviewForm.insertBefore(createReviewFormRow(), actions);
-  });
-
-  const saveButton = document.createElement('button');
-  saveButton.className = 'detail-action-primary';
-  saveButton.type = 'submit';
-  saveButton.textContent = '저장';
-
-  actions.append(addRowButton, saveButton);
-  reviewForm.appendChild(actions);
-  form.append(summaryInput, reviewForm);
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    handlers.onEditContentSave(book.id, summaryInput.value, collectMagazineReviews(form));
-  });
-
-  scroll.append(createDetailTopbar(selectedPeriod, book, handlers), hero, actionBar, form);
+  scroll.append(hero, form);
   detail.appendChild(scroll);
 }
 
@@ -724,32 +760,36 @@ function renderMonthDetail(detail, book, selectedPeriod, handlers) {
   }
 }
 
-function createGuideBubble({ characterFile, lines, onSelect }) {
+function createGuideBubble({ characterFile, lines, onSelect, onCharacterClick }) {
   const wrap = document.createElement('div');
   wrap.className = 'guide-bubble-wrap';
 
-  const bubble = document.createElement('div');
-  bubble.className = 'guide-bubble';
+  if (lines) {
+    const bubble = document.createElement('div');
+    bubble.className = 'guide-bubble';
 
-  lines.forEach((line) => {
-    const p = document.createElement('p');
-    p.className = 'guide-bubble-line';
-    p.textContent = line;
-    bubble.appendChild(p);
-  });
-
-  if (onSelect) {
-    const options = document.createElement('div');
-    options.className = 'guide-bubble-options';
-    onSelect.forEach(({ label, onClick }) => {
-      const optBtn = document.createElement('button');
-      optBtn.type = 'button';
-      optBtn.className = 'guide-bubble-option';
-      optBtn.textContent = label;
-      optBtn.addEventListener('click', onClick);
-      options.appendChild(optBtn);
+    lines.forEach((line) => {
+      const p = document.createElement('p');
+      p.className = 'guide-bubble-line';
+      p.textContent = line;
+      bubble.appendChild(p);
     });
-    bubble.appendChild(options);
+
+    if (onSelect) {
+      const options = document.createElement('div');
+      options.className = 'guide-bubble-options';
+      onSelect.forEach(({ label, onClick, selected }) => {
+        const optBtn = document.createElement('button');
+        optBtn.type = 'button';
+        optBtn.className = `guide-bubble-option${selected ? ' is-selected' : ''}`;
+        optBtn.textContent = label;
+        optBtn.addEventListener('click', onClick);
+        options.appendChild(optBtn);
+      });
+      bubble.appendChild(options);
+    }
+
+    wrap.appendChild(bubble);
   }
 
   const character = document.createElement('img');
@@ -757,7 +797,20 @@ function createGuideBubble({ characterFile, lines, onSelect }) {
   character.src = `assets/characters/${characterFile}`;
   character.alt = '길잡이 캐릭터';
 
-  wrap.append(bubble, character);
+  if (onCharacterClick) {
+    character.classList.add('guide-character-clickable');
+    character.setAttribute('role', 'button');
+    character.setAttribute('tabindex', '0');
+    character.addEventListener('click', onCharacterClick);
+    character.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onCharacterClick();
+      }
+    });
+  }
+
+  wrap.appendChild(character);
   return wrap;
 }
 
@@ -909,7 +962,22 @@ function renderMeetingLeft(container, book, selectedPeriod, view = '') {
   container.appendChild(panel);
 }
 
-const GUIDE_CHARACTER_CONTENT = {
+export const GUIDE_CHARACTER_CONTENT = {
+  welcome: {
+    characterFile: '책6_인사.png',
+    lines: [
+      '안녕하세요?',
+      '독서모임 길잡이 입니다. 이 응용프로그램을 사용하는',
+      '여러분을 돕는게 제 일이죠.',
+    ],
+  },
+  topics: {
+    characterFile: '책3_검색.png',
+    lines: ['이런 것들을 얘기해볼 수 있어요'],
+  },
+  'topic-chosen': {
+    characterFile: '책2_궁금.png',
+  },
   'idle-help': {
     characterFile: '책3_검색.png',
     lines: ['혹시 제가 필요할까요? 저는 여러분을 최대한 도와드릴수', '있습니다!'],
@@ -929,12 +997,12 @@ const GUIDE_CHARACTER_CONTENT = {
   'warn-loud': {
     characterFile: '책2_궁금.png',
     lines: ['지금 너무 격해졌어요', '잠깐 쉬었다 해보세요!!'],
-    bodyLines: ['아무도 말을 하고 있지 않습니다....', '목소리가 커지고 있습니다!'],
+    bodyLines: ['목소리가 커지고 있습니다!'],
   },
   'block-fight': {
     characterFile: '책1_금지.png',
     lines: ['잠깐! 수칙을 다같이 외쳐보아요!'],
-    bodyLines: [],
+    bodyLines: [MEETING_RULES.join(' ')],
   },
 };
 
@@ -968,11 +1036,12 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
   const isBlocked = handlers.guideState === 'block-fight';
   const showsWelcome = !isBlocked && handlers.meetingGuideView === 'welcome';
   const showsTopicsGuide = !isBlocked && handlers.meetingGuideView === 'topics';
-  const showsTopics = !isBlocked
-    && (handlers.meetingGuideView === 'topics' || handlers.meetingGuideView === 'topics-hidden');
+  const showsTopicChosen = !isBlocked && handlers.meetingGuideView === 'topic-chosen';
   const dynamicGuide = !showsWelcome && !showsTopicsGuide
-    ? (GUIDE_CHARACTER_CONTENT[handlers.guideState] || GUIDE_CHARACTER_CONTENT.encourage)
+    ? GUIDE_CHARACTER_CONTENT[handlers.guideState] || null
     : null;
+  const hasTopicChosenDetail = !isBlocked && handlers.activeTopicIndex != null;
+  const hasOverrideText = !!dynamicGuide?.bodyLines?.length || hasTopicChosenDetail;
 
   if (isBlocked) {
     page.classList.add('guide-state-block-fight');
@@ -992,15 +1061,20 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
     lockPanel.append(lockTitle, createMeetingRulesList(), resetButton);
     body.appendChild(lockPanel);
     finishButton.disabled = true;
-  } else {
+  } else if (!hasOverrideText) {
     const status = document.createElement('p');
     status.className = 'meeting-recording-status';
     status.textContent = '녹음중입니다...';
     body.appendChild(status);
+
+    const guideHint = document.createElement('p');
+    guideHint.className = 'meeting-guide-hint';
+    guideHint.textContent = '언제든지 도움이 필요하면 아래 길잡이 를 눌러주세요';
+    body.appendChild(guideHint);
   }
 
   if (dynamicGuide && !isBlocked) {
-    page.classList.add(`guide-state-${handlers.guideState === 'none' ? 'encourage' : handlers.guideState}`);
+    page.classList.add(`guide-state-${handlers.guideState}`);
     dynamicGuide.bodyLines.forEach((line) => {
       const message = document.createElement('p');
       message.className = 'meeting-state-message';
@@ -1009,69 +1083,109 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
     });
   }
 
-  if (showsTopics) {
-    const topics = document.createElement('ol');
-    topics.className = 'meeting-topic-list';
-    MEETING_TOPIC_PROMPTS.forEach((prompt) => {
+  if (hasTopicChosenDetail) {
+    const topicTitle = MEETING_TOPIC_PROMPTS[handlers.activeTopicIndex];
+    const topicDetail = MEETING_TOPIC_DETAILS[handlers.activeTopicIndex];
+    if (topicTitle) {
+      const topicDetailSection = document.createElement('div');
+      topicDetailSection.className = 'meeting-topic-detail';
+
+      const topicDetailTitle = document.createElement('h2');
+      topicDetailTitle.className = 'meeting-topic-detail-title';
+      topicDetailTitle.textContent = topicTitle;
+
+      const topicDetailCopy = document.createElement('p');
+      topicDetailCopy.className = 'meeting-topic-detail-copy';
+      topicDetailCopy.textContent = topicDetail || '';
+
+      topicDetailSection.append(topicDetailTitle, topicDetailCopy);
+      body.appendChild(topicDetailSection);
+    }
+  }
+
+  if (handlers.meetingLog?.length) {
+    const log = document.createElement('ol');
+    log.className = 'meeting-log';
+    handlers.meetingLog.forEach((entry) => {
       const item = document.createElement('li');
-      item.textContent = prompt;
-      topics.appendChild(item);
+      item.className = 'meeting-log-entry';
+
+      const time = document.createElement('span');
+      time.className = 'meeting-log-time';
+      time.textContent = formatLogTimestamp(entry.time);
+
+      const text = document.createElement('span');
+      text.className = 'meeting-log-text';
+      text.textContent = entry.text;
+
+      item.append(time, text);
+      log.appendChild(item);
     });
-    body.appendChild(topics);
+    body.appendChild(log);
   }
 
   page.append(header, body);
 
-  if (isBlocked || dynamicGuide) {
-    const guideContent = isBlocked ? GUIDE_CHARACTER_CONTENT['block-fight'] : dynamicGuide;
-    const dock = document.createElement('aside');
-    dock.className = 'meeting-guide-dock';
-    const options = guideContent.options?.map(({ label, action }) => ({
+  const dock = document.createElement('aside');
+  dock.className = 'meeting-guide-dock';
+
+  if (isBlocked) {
+    const guideContent = GUIDE_CHARACTER_CONTENT['block-fight'];
+    dock.appendChild(createGuideBubble({
+      characterFile: guideContent.characterFile,
+      lines: guideContent.lines,
+    }));
+  } else if (dynamicGuide) {
+    const options = dynamicGuide.options?.map(({ label, action }) => ({
       label,
       onClick: action === 'help'
         ? () => handlers.onMeetingGuideHelp?.()
         : () => handlers.onMeetingGuideDismiss?.(),
     }));
     dock.appendChild(createGuideBubble({
-      characterFile: guideContent.characterFile,
-      lines: guideContent.lines,
+      characterFile: dynamicGuide.characterFile,
+      lines: dynamicGuide.lines,
       onSelect: options,
     }));
-    page.appendChild(dock);
   } else if (showsWelcome) {
-    const dock = document.createElement('aside');
-    dock.className = 'meeting-guide-dock';
+    dock.appendChild(createGuideBubble({
+      characterFile: GUIDE_CHARACTER_CONTENT.welcome.characterFile,
+      lines: GUIDE_CHARACTER_CONTENT.welcome.lines,
+      onSelect: [
+        { label: '도움이 필요하세요?', onClick: () => handlers.onMeetingGuideHelp?.() },
+      ],
+      onCharacterClick: () => handlers.onMeetingGuideOpen?.(),
+    }));
+  } else if (showsTopicsGuide) {
+    dock.appendChild(createGuideBubble({
+      characterFile: GUIDE_CHARACTER_CONTENT.topics.characterFile,
+      lines: GUIDE_CHARACTER_CONTENT.topics.lines,
+      onSelect: MEETING_TOPIC_PROMPTS.map((prompt, index) => ({
+        label: prompt,
+        onClick: () => handlers.onMeetingTopicSelect?.(index),
+        selected: index === handlers.activeTopicIndex,
+      })),
+      onCharacterClick: () => handlers.onMeetingGuideOpen?.(),
+    }));
+  } else if (showsTopicChosen) {
+    const question = MEETING_TOPIC_QUESTIONS[handlers.activeTopicIndex];
+    dock.appendChild(createGuideBubble({
+      characterFile: GUIDE_CHARACTER_CONTENT['topic-chosen'].characterFile,
+      lines: question ? [question] : null,
+      onCharacterClick: () => handlers.onMeetingGuideOpen?.(),
+    }));
+  } else {
     dock.appendChild(createGuideBubble({
       characterFile: '책6_인사.png',
-      lines: [
-        '안녕하세요?',
-        '독서모임 길잡이 입니다. 이 응용프로그램을 사용하는',
-        '여러분을 돕는게 제 일이죠.',
-      ],
-      onSelect: [
-        { label: '무슨말을 해야할까요?', onClick: () => handlers.onMeetingGuideHelp?.() },
-        { label: '그냥 시작할게', onClick: () => handlers.onMeetingGuideDismiss?.() },
-      ],
+      lines: null,
+      onCharacterClick: () => handlers.onMeetingGuideOpen?.(),
     }));
-    page.appendChild(dock);
-  } else if (showsTopicsGuide) {
-    const dock = document.createElement('aside');
-    dock.className = 'meeting-guide-dock';
-    dock.appendChild(createGuideBubble({
-      characterFile: '책3_검색.png',
-      lines: [
-        '어떻게 시작해야할지 모르겠다면',
-        '제가 여기에 대화하기 좋은 키워드들을 둘러드릴게요.',
-        '키워드에 맞춰 이야기해보세요.',
-      ],
-      onSelect: [
-        { label: '고마워', onClick: () => handlers.onMeetingGuideDismiss?.(true) },
-      ],
-    }));
-    page.appendChild(dock);
   }
 
+  page.appendChild(dock);
+
   detail.appendChild(page);
+  body.scrollTop = body.scrollHeight;
 }
 
 function removeRatingModal() {
@@ -1086,39 +1200,58 @@ function removeRatingModal() {
 function createStarPicker(initialValue, onChange) {
   const picker = document.createElement('div');
   picker.className = 'rating-picker';
-  picker.setAttribute('role', 'radiogroup');
+  picker.setAttribute('role', 'slider');
   picker.setAttribute('aria-label', '별점 선택');
+  picker.setAttribute('aria-valuemin', '0.5');
+  picker.setAttribute('aria-valuemax', '5');
+  picker.tabIndex = 0;
 
   let value = initialValue;
+  const clampValue = (rating) => Math.max(0.5, Math.min(5, Math.round(rating * 2) / 2));
   const select = (rating) => {
-    value = rating;
+    value = clampValue(rating);
     buttons.forEach((button, index) => {
-      button.textContent = index + 1 <= value ? '★' : '☆';
-      button.setAttribute('aria-checked', String(index + 1 === value));
-      button.tabIndex = index + 1 === value ? 0 : -1;
+      const fillAmount = Math.max(0, Math.min(1, value - index));
+      button.fill.style.width = `${fillAmount * 100}%`;
     });
+    picker.setAttribute('aria-valuenow', String(value));
+    picker.setAttribute('aria-valuetext', `${value}점`);
     onChange(value);
   };
   const buttons = [1, 2, 3, 4, 5].map((n) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'rating-picker-star';
-    button.setAttribute('role', 'radio');
-    button.setAttribute('aria-label', `${n}점`);
-    button.addEventListener('click', () => select(n));
-    button.addEventListener('keydown', (event) => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const next = event.key === 'Home' ? 1 : event.key === 'End' ? 5
-        : ((value - 1 + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : 4)) % 5) + 1;
-      select(next);
-      buttons[next - 1].focus();
+    button.tabIndex = -1;
+    button.setAttribute('aria-hidden', 'true');
+
+    const empty = document.createElement('span');
+    empty.className = 'rating-picker-star-empty';
+    empty.textContent = '★';
+    const fill = document.createElement('span');
+    fill.className = 'rating-picker-star-fill';
+    fill.textContent = '★';
+    button.append(empty, fill);
+    button.fill = fill;
+
+    button.addEventListener('click', (event) => {
+      const { left, width } = button.getBoundingClientRect();
+      const isHalf = event.clientX - left < width / 2;
+      select(n - (isHalf ? 0.5 : 0));
     });
     return button;
+  });
+  picker.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0.5 : event.key === 'End' ? 5
+      : value + (['ArrowRight', 'ArrowUp'].includes(event.key) ? 0.5 : -0.5);
+    select(next);
   });
   select(initialValue);
   picker.append(...buttons);
   picker.getValue = () => value;
+  picker.setValue = select;
   return picker;
 }
 
@@ -1138,7 +1271,7 @@ function createRatingScrollFrame(scroller, label) {
   return frame;
 }
 
-function renderRatingModal(book, handlers) {
+function renderRatingModal(book, handlers, { editable = false } = {}) {
   removeRatingModal();
 
   const overlay = document.createElement('div');
@@ -1167,13 +1300,15 @@ function renderRatingModal(book, handlers) {
   list.tabIndex = 0;
   list.setAttribute('aria-label', '감상평 목록');
   const reviews = book.reviews || [];
+  let editingIndex = null;
+
   if (reviews.length === 0) {
     const empty = document.createElement('li');
     empty.className = 'rating-modal-empty';
     empty.textContent = '아직 감상평이 없어요. 가장 먼저 남겨보세요!';
     list.appendChild(empty);
   } else {
-    reviews.forEach((review) => {
+    reviews.forEach((review, index) => {
       const item = document.createElement('li');
       item.className = 'rating-modal-item';
       const head = document.createElement('p');
@@ -1183,6 +1318,43 @@ function renderRatingModal(book, handlers) {
       body.className = 'rating-modal-item-body';
       body.textContent = review.review || '';
       item.append(head, body);
+
+      if (editable) {
+        const itemActions = document.createElement('div');
+        itemActions.className = 'rating-modal-item-actions';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'detail-top-action';
+        editButton.textContent = '수정';
+        editButton.addEventListener('click', () => {
+          editingIndex = index;
+          nameInput.value = review.name || '';
+          picker.setValue(review.rating || 5);
+          reviewInput.value = review.review || '';
+          submitButton.textContent = '수정 저장';
+          nameInput.focus({ preventScroll: true });
+        });
+
+        const actionDivider = document.createElement('span');
+        actionDivider.className = 'detail-top-separator';
+        actionDivider.textContent = '|';
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'detail-top-action';
+        deleteButton.textContent = '삭제';
+        deleteButton.addEventListener('click', () => {
+          if (!window.confirm('이 감상평을 삭제할까요?')) return;
+          const updatedReviews = reviews.filter((_, i) => i !== index);
+          handlers.onRatingSave(book.id, updatedReviews);
+          renderRatingModal({ ...book, reviews: updatedReviews }, handlers, { editable });
+        });
+
+        itemActions.append(editButton, actionDivider, deleteButton);
+        item.appendChild(itemActions);
+      }
+
       list.appendChild(item);
     });
   }
@@ -1218,8 +1390,11 @@ function renderRatingModal(book, handlers) {
     event.preventDefault();
     const name = nameInput.value.trim();
     if (!name) return;
-    const newReview = { name, rating: picker.getValue(), review: reviewInput.value.trim() };
-    handlers.onRatingSave(book.id, [...(book.reviews || []), newReview]);
+    const reviewData = { name, rating: picker.getValue(), review: reviewInput.value.trim() };
+    const updatedReviews = editingIndex !== null
+      ? reviews.map((entry, i) => (i === editingIndex ? reviewData : entry))
+      : [...reviews, reviewData];
+    handlers.onRatingSave(book.id, updatedReviews);
     removeRatingModal();
   });
 
@@ -1329,6 +1504,17 @@ export function renderUploadDateModal({ onConfirm, onCancel } = {}) {
   input.focus();
 }
 
+export function updateMonthGridScrollArrowVisibility() {
+  const grid = document.getElementById('month-grid');
+  const frame = grid?.closest('.calendar-scroll-frame');
+  if (!grid || !frame) return;
+
+  const canScroll = grid.scrollHeight > grid.clientHeight + 1;
+  frame.querySelectorAll(':scope > .scroll-arrow-up, :scope > .scroll-arrow-down')
+    .forEach((button) => { button.hidden = !canScroll; });
+  grid.classList.toggle('is-not-scrollable', !canScroll);
+}
+
 export function renderBookSlider(books, selectedPeriod, handlers) {
   const container = document.getElementById('book-slider');
   const detail = document.getElementById('month-detail');
@@ -1418,6 +1604,7 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   stack.appendChild(board);
   container.appendChild(stack);
   grid.scrollTop = previousScrollTop;
+  updateMonthGridScrollArrowVisibility();
 
   if (handlers.view === 'search' || handlers.view === 'edit-search') {
     detail.innerHTML = '';

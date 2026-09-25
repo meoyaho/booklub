@@ -8,6 +8,13 @@ export function toLocalDateString(date) {
   return `${y}-${m}-${d}`;
 }
 
+export function formatLogTimestamp(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 export function formatDurationSeconds(totalSeconds) {
   const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
   const hours = Math.floor(seconds / 3600);

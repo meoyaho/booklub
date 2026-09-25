@@ -10,7 +10,13 @@ import {
   analyzeRecording,
   uploadBookCover,
 } from './firebase.js';
-import { renderBookSlider, renderUploadDateModal } from './bookSlider.js';
+import {
+  renderBookSlider,
+  renderUploadDateModal,
+  updateMonthGridScrollArrowVisibility,
+  GUIDE_CHARACTER_CONTENT,
+  MEETING_TOPIC_PROMPTS,
+} from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
 import { Recorder } from './recorder.js';
@@ -30,7 +36,9 @@ let decibelMonitor = null;
 let currentRecorder = null;
 let levelSinceMs = Date.now();
 let guideState = GUIDE_STATES.NONE;
-let meetingGuideView = 'welcome';
+let meetingGuideView = 'closed';
+let activeMeetingTopicIndex = null;
+let meetingLog = [];
 let uploadedFile = null;
 let meetingStartedAt = null;
 const today = new Date();
@@ -65,25 +73,27 @@ function buildInviteUrl(clubId) {
   return url.toString();
 }
 
-function showClubGate() {
-  setLogoMode('splash');
-  document.getElementById('club-gate')?.classList.remove('hidden');
-  showScreen('screen-splash');
-}
-
 async function copyInviteLink() {
-  if (!generatedInviteLink) return;
+  if (!generatedInviteLink) return false;
 
   try {
     await navigator.clipboard.writeText(generatedInviteLink);
+    return true;
   } catch (err) {
-    const input = document.getElementById('club-invite-link');
-    input?.select();
-    document.execCommand('copy');
+    try {
+      const input = document.getElementById('club-invite-link');
+      input?.select();
+      return document.execCommand('copy');
+    } catch (fallbackErr) {
+      return false;
+    }
   }
-
-  document.getElementById('club-copy-guide')?.classList.remove('hidden');
 }
+
+let splashStep = 'welcome';
+let splashClubName = '';
+let splashClubId = '';
+let splashCopySucceeded = false;
 
 async function handleClubCreate(event) {
   event.preventDefault();
@@ -96,25 +106,165 @@ async function handleClubCreate(event) {
   button.disabled = true;
   try {
     const clubId = await createClub(name);
+    splashClubId = clubId;
+    splashClubName = name;
     generatedInviteLink = buildInviteUrl(clubId);
-    document.getElementById('club-invite-link').value = generatedInviteLink;
-    document.getElementById('club-create-form')?.classList.add('hidden');
-    document.getElementById('club-invite-result')?.classList.remove('hidden');
+    splashStep = 'link-ready';
+    renderSplashGuide();
   } catch (err) {
     alert(err?.message || '초대 링크를 만들지 못했습니다. 다시 시도해주세요.');
     button.disabled = false;
   }
 }
 
+function enterCreatedClub() {
+  currentClubId = splashClubId;
+  const url = new URL(window.location.href);
+  url.searchParams.set('club', currentClubId);
+  window.history.replaceState({}, '', url);
+  subscribeCurrentClub();
+  renderMain();
+  enterMainFromSplash();
+}
+
+function createGuideBubbleLine(text) {
+  const line = document.createElement('p');
+  line.className = 'guide-bubble-line';
+  line.textContent = text;
+  return line;
+}
+
+function renderSplashGuide() {
+  const container = document.getElementById('splash-guide');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'guide-bubble-wrap';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'guide-bubble';
+
+  if (currentClubId || splashStep === 'welcome') {
+    bubble.appendChild(createGuideBubbleLine('환영합니다! 아이콘을 클릭해주세요'));
+  } else if (splashStep === 'name-input') {
+    bubble.appendChild(createGuideBubbleLine('독서 모임 이름을 입력해주세요'));
+
+    const form = document.createElement('form');
+    form.id = 'club-create-form';
+    form.addEventListener('submit', handleClubCreate);
+
+    const input = document.createElement('input');
+    input.id = 'club-name-input';
+    input.type = 'text';
+    input.placeholder = '독서모임명을 입력하세요';
+    input.autocomplete = 'off';
+    form.appendChild(input);
+
+    const nameOptions = document.createElement('div');
+    nameOptions.className = 'guide-bubble-options';
+    const submitBtn = document.createElement('button');
+    submitBtn.id = 'club-create-btn';
+    submitBtn.type = 'submit';
+    submitBtn.className = 'guide-bubble-option';
+    submitBtn.textContent = '만들기';
+    nameOptions.appendChild(submitBtn);
+    form.appendChild(nameOptions);
+
+    bubble.appendChild(form);
+  } else if (splashStep === 'link-ready' || splashStep === 'link-confirm') {
+    const linkInput = document.createElement('input');
+    linkInput.id = 'club-invite-link';
+    linkInput.type = 'text';
+    linkInput.readOnly = true;
+    linkInput.value = generatedInviteLink;
+    linkInput.setAttribute('aria-label', '초대 링크');
+    bubble.appendChild(linkInput);
+
+    const options = document.createElement('div');
+    options.className = 'guide-bubble-options';
+
+    if (splashStep === 'link-ready') {
+      bubble.appendChild(createGuideBubbleLine(
+        `앞으로 ${splashClubName}의 독서 모임 링크는 위 링크로만 접속할 수 있으므로, 조심히 보관해주세요`,
+      ));
+
+      const ackBtn = document.createElement('button');
+      ackBtn.type = 'button';
+      ackBtn.className = 'guide-bubble-option';
+      ackBtn.textContent = '알겠어, 복사할게';
+      ackBtn.addEventListener('click', async () => {
+        splashCopySucceeded = await copyInviteLink();
+        splashStep = 'link-confirm';
+        renderSplashGuide();
+      });
+      options.appendChild(ackBtn);
+    } else {
+      bubble.appendChild(createGuideBubbleLine(
+        splashCopySucceeded ? '링크를 복사했어요!' : '복사에 실패했어요. 위 링크를 직접 복사해주세요.',
+      ));
+      bubble.appendChild(createGuideBubbleLine('이제 입장해볼까요?'));
+
+      const enterBtn = document.createElement('button');
+      enterBtn.type = 'button';
+      enterBtn.className = 'guide-bubble-option';
+      enterBtn.textContent = '입장하기';
+      enterBtn.addEventListener('click', enterCreatedClub);
+      options.appendChild(enterBtn);
+    }
+
+    bubble.appendChild(options);
+  }
+
+  const icon = document.createElement('img');
+  icon.className = 'guide-character guide-character-clickable';
+  icon.src = 'assets/characters/책6_인사.png';
+  icon.alt = '길잡이 캐릭터';
+  icon.setAttribute('role', 'button');
+  icon.setAttribute('tabindex', '0');
+  icon.addEventListener('click', handleSplashIconClick);
+  icon.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSplashIconClick();
+    }
+  });
+
+  wrap.append(bubble, icon);
+  container.appendChild(wrap);
+
+  if (splashStep === 'name-input' && !currentClubId) {
+    document.getElementById('club-name-input')?.focus({ preventScroll: true });
+  }
+}
+
+function handleSplashIconClick() {
+  if (hasEnteredMain) return;
+  if (currentClubId) {
+    enterMainFromSplash();
+    return;
+  }
+  if (splashStep === 'welcome') {
+    splashStep = 'name-input';
+    renderSplashGuide();
+  }
+}
+
 function setLogoMode(mode) {
   const logo = document.getElementById('app-logo');
-  logo.classList.remove('logo-splash', 'logo-docked', 'logo-meeting', 'logo-hidden');
+  logo.classList.remove('logo-docked', 'logo-meeting', 'logo-hidden');
   logo.classList.add(`logo-${mode}`);
 }
 
 function syncLogoMode() {
   if (!hasEnteredMain) return;
   setLogoMode('docked');
+}
+
+function logGuideMessage(text) {
+  if (!text) return;
+  const elapsed = meetingStartedAt ? (Date.now() - meetingStartedAt) / 1000 : 0;
+  meetingLog = [...meetingLog, { time: elapsed, text }];
 }
 
 function updateMeetingLevelClass(level = meetingLevel) {
@@ -142,21 +292,26 @@ function syncMainLayoutState() {
   document.getElementById('screen-main')?.classList.toggle('is-meeting-screen', isMeetingScreen);
   document.getElementById('screen-main')?.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   updateMeetingLevelClass();
+  updateScrollArrowVisibility();
 }
 
-async function startSplashAnimation() {
-  const logo = document.getElementById('app-logo');
-  if (!logo.complete) {
-    await new Promise((resolve) => {
-      logo.onload = resolve;
-      logo.onerror = resolve;
-    });
-  }
-  setTimeout(() => {
-    hasEnteredMain = true;
-    setLogoMode('docked');
-    setTimeout(() => showScreen('screen-main'), 800);
-  }, 1200);
+function updateScrollArrowVisibility() {
+  const panel = document.getElementById('month-detail');
+  const up = document.getElementById('panel-scroll-up');
+  const down = document.getElementById('panel-scroll-down');
+  if (!panel || !up || !down) return;
+
+  const canScroll = panel.scrollHeight > panel.clientHeight + 1;
+  up.hidden = !canScroll;
+  down.hidden = !canScroll;
+  panel.classList.toggle('is-not-scrollable', !canScroll);
+}
+
+function enterMainFromSplash() {
+  if (hasEnteredMain) return;
+  hasEnteredMain = true;
+  setLogoMode('docked');
+  showScreen('screen-main');
 }
 
 function handleAddClick(period) {
@@ -196,6 +351,8 @@ function renderMain() {
     meetingPermissionMessage,
     guideState,
     meetingGuideView,
+    activeTopicIndex: activeMeetingTopicIndex,
+    meetingLog,
     mobilePage,
     onMonthSelect(period) {
       selectedPeriod = period;
@@ -237,6 +394,7 @@ function renderMain() {
     },
     onSearchResult: addSearchResultToMonth,
     onEditBook: openBookEdit,
+    onCancelEdit: cancelBookEdit,
     onEditCover: openBookCoverSearch,
     onDeleteBook: deleteSelectedBook,
     onStartMeeting(bookId) {
@@ -246,15 +404,26 @@ function renderMain() {
     onIntroContinue: openMeetingRules,
     onMeetingConsent: startMeeting,
     onMeetingFinish: finishMeeting,
+    onMeetingGuideOpen() {
+      const isOpen = meetingGuideView === 'welcome' || meetingGuideView === 'topics' || meetingGuideView === 'topic-chosen';
+      meetingGuideView = isOpen ? 'closed' : 'welcome';
+      renderMain();
+    },
     onMeetingGuideHelp() {
       meetingGuideView = 'topics';
       renderMain();
     },
-    onMeetingGuideDismiss(keepTopics = false) {
-      meetingGuideView = keepTopics ? 'topics-hidden' : 'hidden';
-      if (!keepTopics && guideState === GUIDE_STATES.IDLE_HELP) {
+    onMeetingTopicSelect(index) {
+      activeMeetingTopicIndex = index;
+      meetingGuideView = 'topic-chosen';
+      logGuideMessage(MEETING_TOPIC_PROMPTS[index]);
+      renderMain();
+    },
+    onMeetingGuideDismiss() {
+      meetingGuideView = 'hidden';
+      if (guideState === GUIDE_STATES.IDLE_HELP) {
         levelSinceMs = Date.now();
-        guideState = GUIDE_STATES.ENCOURAGE;
+        guideState = GUIDE_STATES.NONE;
       }
       renderMain();
     },
@@ -395,6 +564,14 @@ function openBookEdit(bookId) {
   showScreen('screen-main');
 }
 
+function cancelBookEdit(bookId) {
+  currentBookId = bookId;
+  mobilePage = 'detail';
+  mainView = 'detail';
+  renderMain();
+  showScreen('screen-main');
+}
+
 function openBookCoverSearch(bookId) {
   currentBookId = bookId;
   editingBookId = bookId;
@@ -490,6 +667,7 @@ function handleDecibelLevel(level) {
   if (nextGuideState !== guideState) {
     guideState = nextGuideState;
     if (guideState === GUIDE_STATES.BLOCK_FIGHT) meetingGuideView = 'hidden';
+    logGuideMessage(GUIDE_CHARACTER_CONTENT[guideState]?.bodyLines?.[0]);
     renderMain();
   }
 }
@@ -506,7 +684,8 @@ function openMeetingRules() {
   meetingPermissionMessage = '';
   levelSinceMs = Date.now();
   guideState = GUIDE_STATES.NONE;
-  meetingGuideView = 'welcome';
+  meetingGuideView = 'closed';
+  activeMeetingTopicIndex = null;
   renderMain();
   showScreen('screen-main');
 }
@@ -542,7 +721,9 @@ async function startMeeting({ skipWelcome = false } = {}) {
   meetingPermissionMessage = '';
   levelSinceMs = Date.now();
   guideState = GUIDE_STATES.NONE;
-  meetingGuideView = skipWelcome ? 'hidden' : 'welcome';
+  meetingGuideView = skipWelcome ? 'hidden' : 'closed';
+  activeMeetingTopicIndex = null;
+  meetingLog = [];
   meetingStartedAt = Date.now();
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
@@ -563,7 +744,9 @@ async function finishMeeting(event) {
     meetingLevel = 'quiet';
     levelSinceMs = Date.now();
     guideState = GUIDE_STATES.NONE;
-    meetingGuideView = 'welcome';
+    meetingGuideView = 'closed';
+    activeMeetingTopicIndex = null;
+    meetingLog = [];
     mainView = 'detail';
     setLogoMode('docked');
     renderMain();
@@ -595,6 +778,7 @@ async function resetMeetingAfterFight() {
   meetingLevel = 'quiet';
   guideState = GUIDE_STATES.NONE;
   meetingGuideView = 'hidden';
+  activeMeetingTopicIndex = null;
   await startMeeting({ skipWelcome: true });
 }
 
@@ -713,10 +897,13 @@ async function runAnalysis(blob, meta = {}) {
   }
 }
 
-async function saveEditedBookContent(bookId, summary, reviews) {
+async function saveEditedBookContent(bookId, summary, reviews, meta = {}) {
   const trimmedSummary = summary.trim();
   const avgRating = calcAverage(reviews);
   const status = trimmedSummary || reviews.length > 0 ? 'analyzed' : 'pending';
+  const extra = {};
+  if ('meetingDate' in meta) extra.meetingDate = meta.meetingDate || '';
+  if ('discussionDurationSeconds' in meta) extra.discussionDurationSeconds = meta.discussionDurationSeconds;
 
   try {
     await updateBook(currentClubId, bookId, {
@@ -726,11 +913,12 @@ async function saveEditedBookContent(bookId, summary, reviews) {
       participantCount: reviews.length,
       status,
       analysisError: '',
+      ...extra,
     });
 
     allBooks = allBooks.map((book) => (
       book.id === bookId
-        ? { ...book, summary: trimmedSummary, reviews, avgRating, participantCount: reviews.length, status, analysisError: '' }
+        ? { ...book, summary: trimmedSummary, reviews, avgRating, participantCount: reviews.length, status, analysisError: '', ...extra }
         : book
     ));
     currentBookId = bookId;
@@ -841,20 +1029,20 @@ document.getElementById('upload-file-input').addEventListener('change', async (e
   });
 });
 
-document.getElementById('club-create-form')?.addEventListener('submit', handleClubCreate);
-document.getElementById('club-copy-btn')?.addEventListener('click', copyInviteLink);
-
 document.getElementById('panel-scroll-up')?.addEventListener('click', () => {
   document.getElementById('month-detail')?.scrollBy({ top: -80, behavior: 'smooth' });
 });
 document.getElementById('panel-scroll-down')?.addEventListener('click', () => {
   document.getElementById('month-detail')?.scrollBy({ top: 80, behavior: 'smooth' });
 });
+window.addEventListener('resize', () => {
+  updateScrollArrowVisibility();
+  updateMonthGridScrollArrowVisibility();
+});
+
+renderSplashGuide();
 
 if (currentClubId) {
   subscribeCurrentClub();
   renderMain();
-  startSplashAnimation();
-} else {
-  showClubGate();
 }

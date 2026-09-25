@@ -37,13 +37,11 @@
   --magazine-copy-size: clamp(0.95rem, 1.45vw, 1.55rem);
   --magazine-copy-line: 1.55;
   --review-row-size: clamp(0.78rem, 1vw, 1rem);
-  --splash-logo-width: min(70vw, 640px);
-  --splash-logo-half-height: min(23.333vw, 213px);
-  --splash-gate-height: 48px;
-  --splash-gap: 18px;
-  --splash-center-shift: calc((var(--splash-gap) + var(--splash-gate-height)) / 2);
   --main-outer-gutter: clamp(24px, 4vw, 64px);
   --main-column-gap: clamp(24px, 4vw, 64px);
+
+  --book-ready-title-size: clamp(1.4rem, 2.5vw, 3rem);
+  --book-ready-title-line: 1.25;
 }
 
 body {
@@ -79,6 +77,11 @@ body {
 .month-grid,
 .month-detail {
   scrollbar-gutter: stable;
+}
+
+.month-grid.is-not-scrollable,
+.month-detail.is-not-scrollable {
+  scrollbar-gutter: auto;
 }
 
 button,
@@ -123,15 +126,9 @@ button {
   position: fixed;
   left: 50%;
   z-index: 100;
-  transition: top 0.8s ease, left 0.8s ease, width 0.8s ease, transform 0.8s ease, opacity 0.25s ease;
+  transition: opacity 0.25s ease;
   transform: translate(-50%, -50%);
   pointer-events: none;
-}
-
-#app-logo.logo-splash {
-  top: calc(50% - var(--splash-center-shift));
-  left: 50%;
-  width: var(--splash-logo-width);
 }
 
 #app-logo.logo-docked {
@@ -152,28 +149,27 @@ button {
   opacity: 0;
 }
 
-.club-gate {
-  position: fixed;
-  top: calc(50% + var(--splash-logo-half-height) - var(--splash-center-shift));
-  left: 50%;
-  z-index: 150;
-  display: grid;
-  width: min(620px, calc(100vw - 32px));
-  transform: translateX(-50%);
-  gap: 12px;
+.splash-guide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
 }
 
-.club-create-form,
-.club-invite-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 10px;
+.splash-guide .guide-bubble-wrap {
   width: 100%;
+  max-width: min(560px, calc(100vw - 32px));
+}
+
+.splash-guide .guide-character {
+  width: clamp(90px, 12vw, 140px);
 }
 
 #club-name-input,
 #club-invite-link {
+  width: 100%;
   min-width: 0;
   height: 48px;
   border: none;
@@ -190,27 +186,6 @@ button {
 #club-invite-link:focus {
   outline: none;
   border-bottom-color: var(--orange);
-}
-
-#club-create-btn,
-#club-copy-btn {
-  min-height: 48px;
-  padding: 0 18px;
-  border: 1px solid var(--ink);
-  border-radius: 8px;
-  background: var(--ink);
-  color: #ffffff;
-  font-family: inherit;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.club-copy-guide {
-  color: var(--orange);
-  font-size: 1rem;
-  font-weight: 900;
-  line-height: 1.35;
-  text-align: center;
 }
 
 .app-titlebar {
@@ -300,6 +275,7 @@ body:has(#screen-main.active) .app-titlebar {
 
 .scroll-arrow-panel.scroll-arrow-up { top: 4px; right: 4px; }
 .scroll-arrow-panel.scroll-arrow-down { bottom: 4px; right: 4px; }
+.scroll-arrow-btn[hidden] { display: none; }
 
 .main-layout.is-meeting-active.meeting-level-quiet {
   --meeting-bg: #4caf50;
@@ -715,6 +691,17 @@ body:has(#screen-main.active) #app-logo {
   box-shadow: none;
 }
 
+.book-ready-cover-stage {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+}
+
+.book-ready-cover-stage .book-ready-cover.month-detail-cover {
+  grid-column: auto;
+  grid-row: auto;
+}
+
 .book-ready-page .detail-eyebrow {
   color: #111111;
   font-size: clamp(1rem, 1.6vw, 1.9rem);
@@ -739,9 +726,9 @@ body:has(#screen-main.active) #app-logo {
 
 .book-ready-title {
   color: var(--retro-titlebar-start);
-  font-size: clamp(1.4rem, 2.5vw, 3rem);
+  font-size: var(--book-ready-title-size);
   font-weight: 400;
-  line-height: 1.25;
+  line-height: var(--book-ready-title-line);
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
@@ -772,10 +759,11 @@ body:has(#screen-main.active) #app-logo {
 .book-ready-rating-value { color: #858580; text-decoration: underline; text-underline-offset: 5px; }
 
 .book-ready-actions {
-  display: grid;
-  grid-template-columns: 0.88fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   margin-top: auto;
-  gap: clamp(12px, 1.4vw, 28px);
+  gap: clamp(8px, 1vw, 16px);
   padding-top: clamp(12px, 1.5vw, 28px);
 }
 
@@ -806,6 +794,21 @@ body:has(#screen-main.active) #app-logo {
 .book-completed-meta .detail-meta-label { color: #111111; font-weight: 400; }
 .book-completed-meta .detail-meta-value { color: #858580; overflow-wrap: anywhere; }
 .book-completed-page .star-rating-fill { color: #36a0ad; }
+
+.duration-edit-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.duration-edit-input,
+.date-edit-input {
+  border: 2px solid;
+  border-color: #afb2c7 #81818b #81818b #afb2c7;
+  border-radius: 0;
+  background: #f7fcfe;
+  color: #111111;
+  font: inherit;
+  font-size: 0.8em;
+  padding: 2px 6px;
+}
+.duration-edit-input { width: 4em; }
+.date-edit-input { color: #858580; }
 
 .book-completed-summary {
   margin-top: clamp(40px, 5vw, 96px);
@@ -1061,12 +1064,6 @@ body:has(#screen-main.active) #app-logo {
   border-bottom: none;
 }
 
-.review-display-row {
-  grid-template-columns: minmax(70px, 0.6fr) max-content minmax(0, 2.8fr);
-  align-items: baseline;
-  gap: 14px;
-}
-
 .reviewer-name {
   font-size: var(--review-row-size);
   font-weight: 900;
@@ -1074,11 +1071,6 @@ body:has(#screen-main.active) #app-logo {
 
 .review-stars {
   font-size: var(--review-row-size);
-}
-
-.review-display-row .detail-body-copy {
-  font-size: var(--review-row-size);
-  line-height: 1.35;
 }
 
 .month-detail-actions {
@@ -1146,6 +1138,7 @@ body:has(#screen-main.active) #app-logo {
 }
 
 .btn-start-meeting {
+  aspect-ratio: 322 / 72;
   background: url('../assets/buttons/독서모임시작_선택전.png') center / 100% 100% no-repeat;
 }
 
@@ -1155,12 +1148,33 @@ body:has(#screen-main.active) #app-logo {
 }
 
 .btn-upload-recording {
+  aspect-ratio: 366 / 72;
   background: url('../assets/buttons/녹음본_업로드하기_선택전.png') center / 100% 100% no-repeat;
 }
 
 .btn-upload-recording:hover:not(:disabled),
 .btn-upload-recording:active:not(:disabled) {
   background: url('../assets/buttons/녹음본업로드하기선택후.png') center / 100% 100% no-repeat;
+}
+
+/*
+ * 다른 곳에서 걸리는 min-height/width (.detail-action-primary/secondary,
+ * .book-ready-actions button 및 그 반응형 변형)는 book-ready-title 과 무관하게 크기를
+ * 고정해서 aspect-ratio 와 충돌하며 버튼이 납작/길쭉하게 찌그러지는 원인이 된다.
+ * 클래스를 두 번 써서 특이도(0,2,0)를 높여 어떤 컨텍스트에서도 항상 이기도록 한다.
+ *
+ * 버튼 PNG(독서모임시작_선택전.png, 녹음본_업로드하기_선택전.png) 안의 실제 글자는
+ * 이미지 전체 높이(72px)의 약 32px만 차지한다(테두리/여백 제외, 72/32 = 2.25배).
+ * 버튼 높이를 book-ready-title 폰트 크기 그대로 맞추면 이미지 안 글자가 title보다
+ * 훨씬 작아 보이므로, 버튼 이미지 안 글자 크기가 title과 같아지도록 2.25배로 키운
+ * 값을 버튼 높이로 쓰고 폭은 aspect-ratio 로만 결정되게 한다.
+ */
+.btn-start-meeting.btn-start-meeting,
+.btn-upload-recording.btn-upload-recording {
+  width: auto;
+  min-height: 0;
+  height: calc(var(--book-ready-title-size) * 1.6);
+  align-self: center;
 }
 
 .btn-rating-submit {
@@ -1254,7 +1268,7 @@ button:disabled {
 }
 
 .guide-bubble-line {
-  margin-bottom: 8px;
+  margin: 20px 0 ;
   line-height: 1.4;
 }
 
@@ -1284,10 +1298,34 @@ button:disabled {
   border-radius: 50%;
 }
 
+.guide-bubble-option.is-selected {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.guide-bubble-option.is-selected::before {
+  background: var(--retro-titlebar-start);
+}
+
 .guide-character {
   flex: 0 0 auto;
   width: clamp(90px, 12vw, 140px);
   height: auto;
+}
+
+.guide-character-clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.guide-character-clickable:hover,
+.guide-character-clickable:focus-visible {
+  transform: translateY(-4px);
+}
+
+.guide-character-clickable:focus-visible {
+  outline: 3px solid var(--retro-titlebar-start);
+  outline-offset: 4px;
 }
 
 .guide-recording-box {
@@ -1438,23 +1476,89 @@ button:disabled {
     #f5a0b4;
 }
 
-.meeting-recording-status {
-  margin: 0;
+.meeting-recording-status,
+.meeting-guide-hint,
+.meeting-topic-detail-title,
+.meeting-topic-detail-copy,
+.meeting-state-message {
   color: #050505;
   font-size: clamp(1.2rem, 1.75vw, 2.1rem);
+  font-weight: 400;
   line-height: 1.25;
+}
+
+.meeting-recording-status {
+  margin: 0;
+}
+
+.meeting-guide-hint {
+  margin: 6px 0 0;
+}
+
+.meeting-topic-detail {
+  margin: clamp(24px, 3vh, 42px) 0 0;
+  padding-top: clamp(18px, 2vh, 28px);
+  border-top: 2px dashed #c9c9c2;
+}
+
+.meeting-recording-body > .meeting-topic-detail:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.meeting-topic-detail-title {
+  margin: 0;
+  word-break: keep-all;
+}
+
+.meeting-topic-detail-copy {
+  margin: 10px 0 0;
+  word-break: keep-all;
 }
 
 .meeting-state-message {
   margin: clamp(24px, 3vh, 42px) 0 0;
-  color: #050505;
-  font-size: clamp(1.35rem, 2.3vw, 2.8rem);
-  line-height: 1.25;
   word-break: keep-all;
+}
+
+.meeting-recording-body > .meeting-state-message:first-child {
+  margin-top: 0;
 }
 
 .meeting-state-message + .meeting-state-message {
   margin-top: clamp(18px, 2.2vh, 32px);
+}
+
+.meeting-log {
+  display: grid;
+  gap: 8px;
+  margin: clamp(28px, 3.4vh, 46px) 0 0;
+  padding: clamp(14px, 1.6vw, 22px) clamp(16px, 1.8vw, 24px);
+  border: 2px solid #d8d8d0;
+  border-radius: 6px;
+  list-style: none;
+  background: #f8f7f2;
+}
+
+.meeting-log-entry {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: #050505;
+  font-size: clamp(0.85rem, 1.05vw, 1.05rem);
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.meeting-log-time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.meeting-log-text {
+  min-width: 0;
 }
 
 .block-fight-title {
@@ -1524,6 +1628,7 @@ button:disabled {
 
 .meeting-guide-dock .guide-bubble-wrap {
   align-items: end;
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
   gap: clamp(18px, 2.4vw, 38px);
@@ -1546,7 +1651,7 @@ button:disabled {
 }
 
 .meeting-guide-dock .guide-bubble-options {
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px 30px;
   margin-top: 18px;
 }
@@ -1607,12 +1712,9 @@ button:disabled {
 }
 
 .book-edit-form {
-  display: grid;
-  gap: 34px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  margin-top: 52px;
   color: var(--ink);
   font-family: 'GalmuriMono11', monospace;
 }
@@ -1653,7 +1755,7 @@ button:disabled {
 }
 
 .book-edit-form .magazine-summary-input {
-  min-height: 220px;
+  min-height: 420px;
   border-bottom-color: var(--line);
   color: var(--orange);
   font-size: var(--detail-copy-size);
@@ -2062,6 +2164,13 @@ button:disabled {
 .rating-modal-item-head .star-rating { font-size: 1em; vertical-align: baseline; color: #a6a6a2; }
 .rating-modal-item-head .star-rating-fill { color: #111111; }
 .rating-modal-item-body { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rating-modal-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.85em;
+}
 .rating-modal-empty { color: #858580; }
 
 .rating-modal-form {
@@ -2098,16 +2207,28 @@ button:disabled {
 #rating-modal .rating-modal-review:focus-visible { outline: 2px solid #3f5d95; outline-offset: -2px; }
 
 .rating-picker { display: flex; align-items: center; gap: 2px; }
+.rating-picker:focus-visible { outline: 2px dotted #3f5d95; outline-offset: 2px; }
 .rating-picker-star {
+  position: relative;
   padding: 2px 0;
   border: 0;
   background: transparent;
-  color: #111111;
   font-size: clamp(16px, 1.35vw, 26px);
   line-height: 1;
   cursor: pointer;
+  pointer-events: auto;
 }
-.rating-picker-star:focus-visible { outline: 2px dotted #3f5d95; outline-offset: 1px; }
+.rating-picker-star-empty { color: #c9c9c2; }
+.rating-picker-star-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  width: 0;
+  color: #111111;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .rating-compose-toolbar .btn-rating-submit {
   width: clamp(82px, 7.1vw, 136px);
   min-height: clamp(32px, 2.3vw, 44px);
@@ -2186,6 +2307,13 @@ button:disabled {
   }
 
   .book-slider:not(.is-meeting-left) { padding: 0; overflow: hidden; }
+  /*
+   * .book-slider.is-meeting-left 의 기본 padding: 0 6% 은 회의 시작 전(.main-left-stack)
+   * 화면에서는 위 규칙으로 0이 되는 것과 달리 그대로 남아, 같은 높이로 맞춘
+   * .inline-app-logo 가 회의 시작 전/후에 서로 다른 폭으로 렌더링되는 원인이 된다.
+   * 데스크톱에서도 동일하게 0으로 맞춰 로고 크기가 화면 전환 후에도 유지되게 한다.
+   */
+  .book-slider.is-meeting-left { padding: 0; }
   .main-left-stack { height: 100%; min-height: 0; justify-content: flex-start; }
   .main-left-stack .inline-app-logo {
     width: 100%;
@@ -2198,7 +2326,7 @@ button:disabled {
     border-bottom: 4px solid #999993;
     box-shadow: 0 2px #fffef5;
   }
-  .month-board { padding: 0 10%; }
+  .month-board { padding: 0; }
 
   .meeting-left-panel .inline-app-logo {
     height: clamp(135px, 23vh, 285px);
@@ -2245,7 +2373,7 @@ button:disabled {
   .book-ready-hero { grid-template-columns: clamp(135px, 12vw, 230px) minmax(0, 1fr); }
   .book-ready-page .detail-eyebrow { font-size: clamp(0.9rem, 1.3vw, 1.5rem); }
   .book-ready-page .detail-top-actions { font-size: clamp(0.78rem, 1vw, 1.1rem); }
-  .book-ready-title { font-size: clamp(1.2rem, 2vw, 2.4rem); }
+  .book-ready-page { --book-ready-title-size: clamp(1.2rem, 2vw, 2.4rem); }
   .book-ready-authors.detail-meta-row,
   .book-ready-rating,
   .book-completed-meta.detail-meta-row { font-size: clamp(0.9rem, 1.35vw, 1.55rem); }
@@ -2291,8 +2419,11 @@ button:disabled {
   .meeting-active-heading { font-size: clamp(1.5rem, 2.2vw, 2.7rem); }
   .meeting-active-header .meeting-finish-btn { width: clamp(120px, 10vw, 180px); right: clamp(20px, 2.5vw, 36px); }
   .meeting-recording-body { padding: clamp(22px, 2.4vw, 38px); }
-  .meeting-recording-status { font-size: clamp(1.05rem, 1.4vw, 1.6rem); }
-  .meeting-state-message { font-size: clamp(1.15rem, 1.8vw, 2.1rem); }
+  .meeting-recording-status,
+  .meeting-guide-hint,
+  .meeting-topic-detail-title,
+  .meeting-topic-detail-copy,
+  .meeting-state-message { font-size: clamp(1.05rem, 1.4vw, 1.6rem); }
   .meeting-topic-list { font-size: clamp(1.05rem, 1.6vw, 1.8rem); }
   .meeting-guide-dock { min-height: clamp(190px, 24vh, 255px); padding: clamp(18px, 2vw, 30px); }
   .meeting-guide-dock .guide-bubble { min-height: 130px; padding: clamp(14px, 1.5vw, 24px); }
@@ -2327,20 +2458,12 @@ button:disabled {
     --mobile-meeting-copy-size: var(--mobile-year-title-size);
     --mobile-detail-cover-width: 76px;
     --mobile-detail-cover-height: 114px;
-    --splash-logo-width: var(--mobile-logo-width);
-    --splash-logo-half-height: min(24.667vw, 103px);
-    --splash-gate-height: 104px;
-    --splash-gap: 16px;
   }
 
-  #app-logo.logo-splash {
-    position: fixed;
-    width: var(--splash-logo-width);
-  }
-
-  .club-gate {
-    top: calc(50% + var(--splash-logo-half-height) - var(--splash-center-shift));
-    width: min(360px, calc(100vw - 32px));
+  .splash-guide .guide-bubble-wrap {
+    max-width: min(360px, calc(100vw - 32px));
+    flex-direction: column-reverse;
+    align-items: center;
   }
 
   /* 모바일은 단일 컬럼이라 사이드바/패널 화살표가 같은 자리에 겹친다. 터치 스크롤로 충분하므로 숨긴다. */
@@ -2348,17 +2471,8 @@ button:disabled {
     display: none;
   }
 
-  .club-create-form,
-  .club-invite-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-  }
-
   #club-name-input,
-  #club-invite-link,
-  #club-create-btn,
-  #club-copy-btn,
-  .club-copy-guide {
+  #club-invite-link {
     font-size: var(--mobile-year-title-size);
   }
 
@@ -2493,7 +2607,7 @@ button:disabled {
 
   .month-board {
     width: min(100%, calc(100vw - 32px));
-    max-width: 360px;
+    max-width: 600px;
     height: 100%;
     margin: 0 auto;
     display: grid;
@@ -2609,8 +2723,9 @@ button:disabled {
   .book-overview-info { display: contents; }
   .book-overview-info > * { grid-column: 2; }
   .book-overview-info > .detail-topbar { grid-column: 1 / -1; grid-row: 1; }
-  .book-ready-cover.month-detail-cover { grid-row: 2 / 5; }
-  .book-ready-title { font-size: 1.15rem; }
+  .book-ready-cover.month-detail-cover,
+  .book-ready-cover-stage { grid-row: 2 / 5; }
+  .book-ready-page { --book-ready-title-size: 1.15rem; }
   .book-ready-authors.detail-meta-row,
   .book-ready-rating { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; font-size: 0.85rem; }
   .book-ready-authors .detail-meta-label { min-width: 0; }
@@ -2708,11 +2823,6 @@ button:disabled {
     font-size: var(--mobile-year-title-size);
   }
 
-  .review-display-row {
-    grid-template-columns: minmax(34px, 0.75fr) max-content minmax(0, 2.4fr);
-    gap: 6px;
-  }
-
   .meeting-title {
     font-size: 1.55rem;
   }
@@ -2784,13 +2894,16 @@ button:disabled {
     padding: 18px;
   }
 
-  .meeting-recording-status {
+  .meeting-recording-status,
+  .meeting-guide-hint,
+  .meeting-topic-detail-title,
+  .meeting-topic-detail-copy,
+  .meeting-state-message {
     font-size: 1rem;
   }
 
   .meeting-state-message {
     margin-top: 18px;
-    font-size: 1.15rem;
   }
 
   .meeting-state-message + .meeting-state-message {
@@ -2882,11 +2995,6 @@ button:disabled {
     line-height: var(--magazine-copy-line);
   }
 
-  .book-edit-form {
-    gap: 14px;
-    margin-top: 26px;
-  }
-
   .magazine-summary-input {
     min-height: 92px;
     padding-bottom: 14px;
@@ -2894,7 +3002,7 @@ button:disabled {
   }
 
   .book-edit-form .magazine-summary-input {
-    min-height: 112px;
+    min-height: 260px;
     line-height: var(--detail-copy-line);
   }
 

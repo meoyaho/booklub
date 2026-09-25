@@ -7,17 +7,24 @@ export const GUIDE_STATES = {
   BLOCK_FIGHT: 'block-fight',
 };
 
-export const QUIET_HELP_MS = 60000;
+export const QUIET_HELP_MS = 30000;
+export const MODERATE_ENCOURAGE_MS = 30000;
+export const LOUD_BLOCK_MS = 8000;
 
 export function computeGuideState({ level, levelSinceMs, now }) {
   const elapsed = now - levelSinceMs;
 
   if (level === 'quiet') {
-    return elapsed >= QUIET_HELP_MS ? GUIDE_STATES.IDLE_HELP : GUIDE_STATES.ENCOURAGE;
+    return elapsed >= QUIET_HELP_MS ? GUIDE_STATES.IDLE_HELP : GUIDE_STATES.NONE;
   }
 
-  if (level === 'moderate') return GUIDE_STATES.WARN_LOUD;
-  if (level === 'loud') return GUIDE_STATES.BLOCK_FIGHT;
+  if (level === 'moderate') {
+    return elapsed >= MODERATE_ENCOURAGE_MS ? GUIDE_STATES.ENCOURAGE : GUIDE_STATES.NONE;
+  }
 
-  return GUIDE_STATES.ENCOURAGE;
+  if (level === 'loud') {
+    return elapsed >= LOUD_BLOCK_MS ? GUIDE_STATES.BLOCK_FIGHT : GUIDE_STATES.WARN_LOUD;
+  }
+
+  return GUIDE_STATES.NONE;
 }
