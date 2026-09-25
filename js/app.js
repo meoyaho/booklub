@@ -161,8 +161,8 @@ function renderSplashGuide() {
 
   if (currentClubId || splashStep === 'welcome') {
     const welcomeText = currentClubId && splashClubName
-      ? `${splashClubName}, 환영합니다! 아이콘을 클릭해주세요`
-      : '환영합니다! 아이콘을 클릭해주세요';
+      ? `${splashClubName}, 환영합니다! 저를 클릭해주세요`
+      : '환영합니다! 저를 클릭해주세요';
     bubble.appendChild(createGuideBubbleLine(welcomeText));
   } else if (splashStep === 'name-input') {
     bubble.appendChild(createGuideBubbleLine('독서 모임 이름을 입력해주세요'));

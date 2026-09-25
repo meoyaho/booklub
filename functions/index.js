@@ -483,7 +483,10 @@ export const uploadBookCover = onCall(
       throw new HttpsError('failed-precondition', '표지 이미지가 비어 있습니다.');
     }
 
-    const storagePath = `covers/${clubId}/${bookId}.${extension}`;
+    // 파일명을 bookId 고정이 아닌 매 업로드마다 고유하게 만든다. cacheControl이
+    // immutable이라 같은 경로로 덮어써도 브라우저/CDN이 예전 이미지를 계속 캐시해
+    // 표지와 책 정보가 어긋나 보이는 문제가 있었다.
+    const storagePath = `covers/${clubId}/${bookId}-${Date.now()}.${extension}`;
     const bucket = getStorage().bucket(STORAGE_BUCKET);
     const file = bucket.file(storagePath);
 
@@ -495,6 +498,17 @@ export const uploadBookCover = onCall(
     });
 
     const url = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(storagePath)}?alt=media`;
+
+    try {
+      const [oldFiles] = await bucket.getFiles({ prefix: `covers/${clubId}/${bookId}` });
+      await Promise.all(
+        oldFiles
+          .filter((oldFile) => oldFile.name !== storagePath)
+          .map((oldFile) => oldFile.delete().catch(() => {})),
+      );
+    } catch (err) {
+      // 이전 표지 정리 실패는 치명적이지 않으므로 무시한다.
+    }
 
     return { storagePath, url, contentType: normalizedContentType };
   },

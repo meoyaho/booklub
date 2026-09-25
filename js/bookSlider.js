@@ -428,17 +428,10 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   hero.className = 'book-ready-hero';
 
   const coverStage = document.createElement('div');
-  coverStage.className = 'book-ready-cover-stage detail-cover-stage-editable';
+  coverStage.className = 'book-ready-cover-stage';
   const cover = createCover(book, 'month-detail-cover');
   cover.classList.add('book-ready-cover');
   coverStage.appendChild(cover);
-
-  const coverEditButton = document.createElement('button');
-  coverEditButton.className = 'cover-edit-btn';
-  coverEditButton.type = 'button';
-  coverEditButton.textContent = '수정';
-  coverEditButton.addEventListener('click', () => handlers.onEditCover?.(book.id));
-  coverStage.appendChild(coverEditButton);
 
   const summaryInput = document.createElement('textarea');
   summaryInput.className = 'magazine-summary-input';
@@ -523,6 +516,12 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   const actionBar = document.createElement('div');
   actionBar.className = 'book-ready-actions book-edit-actions';
 
+  const editBookButton = document.createElement('button');
+  editBookButton.className = 'detail-action-primary btn-edit-book';
+  editBookButton.type = 'button';
+  editBookButton.textContent = '책 수정';
+  editBookButton.addEventListener('click', () => handlers.onEditCover?.(book.id));
+
   const startButton = document.createElement('button');
   startButton.className = 'detail-action-primary btn-start-meeting';
   startButton.type = 'button';
@@ -535,7 +534,7 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   uploadButton.textContent = '녹음본 업로드';
   uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
 
-  actionBar.append(startButton, uploadButton);
+  actionBar.append(editBookButton, startButton, uploadButton);
 
   const info = document.createElement('div');
   info.className = 'book-overview-info';

@@ -877,25 +877,6 @@ body:has(#screen-main.active) #app-logo {
   font-size: clamp(1rem, 1.5vw, 1.6rem);
 }
 
-.detail-cover-stage-editable {
-  position: relative;
-}
-
-.cover-edit-btn {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--ink);
-  font-size: 0.78rem;
-  font-weight: 900;
-  cursor: pointer;
-}
-
 .detail-info {
   align-self: end;
   display: flex;
@@ -1170,11 +1151,23 @@ body:has(#screen-main.active) #app-logo {
  * 값을 버튼 높이로 쓰고 폭은 aspect-ratio 로만 결정되게 한다.
  */
 .btn-start-meeting.btn-start-meeting,
-.btn-upload-recording.btn-upload-recording {
+.btn-upload-recording.btn-upload-recording,
+.btn-edit-book.btn-edit-book {
   width: auto;
   min-height: 0;
   height: calc(var(--book-ready-title-size) * 1.6);
   align-self: center;
+}
+
+.btn-edit-book.btn-edit-book {
+  padding: 0 18px;
+  background: #d0ceca;
+  font-size: 1.2em;
+}
+
+.btn-edit-book.btn-edit-book:hover:not(:disabled),
+.btn-edit-book.btn-edit-book:active:not(:disabled) {
+  background: #d0ceca;
 }
 
 .btn-rating-submit {
@@ -2780,14 +2773,6 @@ button:disabled {
   .month-detail-cover.cover-fallback {
     height: auto;
     font-size: 0.65rem;
-  }
-
-  .cover-edit-btn {
-    top: 5px;
-    left: 5px;
-    min-height: 32px;
-    padding: 0 10px;
-    font-size: var(--mobile-year-title-size);
   }
 
   .detail-eyebrow {
