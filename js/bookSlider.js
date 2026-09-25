@@ -519,7 +519,7 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   const editBookButton = document.createElement('button');
   editBookButton.className = 'detail-action-primary btn-edit-book';
   editBookButton.type = 'button';
-  editBookButton.textContent = '책 수정';
+  editBookButton.textContent = '책 바꾸기';
   editBookButton.addEventListener('click', () => handlers.onEditCover?.(book.id));
 
   const startButton = document.createElement('button');

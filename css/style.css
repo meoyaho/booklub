@@ -1162,7 +1162,7 @@ body:has(#screen-main.active) #app-logo {
 .btn-edit-book.btn-edit-book {
   padding: 0 18px;
   background: #d0ceca;
-  font-size: 1.2em;
+  font-size: clamp(0.75rem, 1.4vw, 1.2rem);
 }
 
 .btn-edit-book.btn-edit-book:hover:not(:disabled),
@@ -2733,7 +2733,7 @@ button:disabled {
 
   .book-completed-page .book-ready-hero { grid-template-rows: auto auto auto 1fr auto auto; }
   .book-completed-page .book-ready-cover { grid-row: 2 / 5; }
-  .book-completed-page .book-completed-meta {
+  .book-ready-page .book-completed-meta {
     grid-column: 1 / -1;
     grid-template-columns: 100px minmax(0, 1fr);
     gap: 16px;
