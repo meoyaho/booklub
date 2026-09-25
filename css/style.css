@@ -1302,11 +1302,13 @@ button:disabled {
   background: transparent;
   color: var(--ink);
   font-weight: 800;
+  text-align: left;
   cursor: pointer;
 }
 
 .guide-bubble-option::before {
   content: '';
+  flex-shrink: 0;
   width: 12px;
   height: 12px;
   border: 2px solid var(--retro-titlebar-start);
@@ -2888,7 +2890,12 @@ button:disabled {
     line-height: 1.35;
   }
 
-  .meeting-rules-page,
+  .meeting-rules-page {
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
   .meeting-active-page {
     align-items: flex-start;
     justify-content: flex-start;

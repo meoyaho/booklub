@@ -1039,7 +1039,9 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
   const dynamicGuide = !showsWelcome && !showsTopicsGuide
     ? GUIDE_CHARACTER_CONTENT[handlers.guideState] || null
     : null;
-  const hasTopicChosenDetail = !isBlocked && handlers.activeTopicIndex != null;
+  const hasTopicChosenDetail = !isBlocked
+    && handlers.guideState !== 'idle-help'
+    && handlers.activeTopicIndex != null;
   const hasOverrideText = !!dynamicGuide?.bodyLines?.length || hasTopicChosenDetail;
 
   if (isBlocked) {
