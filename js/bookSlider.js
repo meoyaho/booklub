@@ -984,7 +984,6 @@ export const GUIDE_CHARACTER_CONTENT = {
     options: [
       { label: '무슨말을 해야할까요?', action: 'help' },
       { label: '어떻게 시작해야돼?', action: 'help' },
-      { label: '어쩌구...', action: 'dismiss' },
       { label: '그냥 시작할게', action: 'dismiss' },
     ],
   },
