@@ -223,18 +223,43 @@ button {
   font-size: 1.05rem;
 }
 
-.app-titlebar-help {
+.app-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-titlebar-help,
+.app-titlebar-settings {
   width: 34px;
   height: 34px;
   border: 0;
   border-radius: 0;
-  background: url('../assets/buttons/물음표.png') center / contain no-repeat;
   color: transparent;
   cursor: pointer;
 }
 
+.app-titlebar-help {
+  background: url('../assets/buttons/물음표.png') center / contain no-repeat;
+}
+
+.app-titlebar-help:hover,
 .app-titlebar-help:active {
   background-image: url('../assets/buttons/물음표_선택후.png');
+}
+
+.app-titlebar-settings {
+  display: none;
+  background: url('../assets/설정창2.png') center / contain no-repeat;
+}
+
+#screen-main:has(.main-layout.is-meeting-active) .app-titlebar-settings {
+  display: block;
+}
+
+.app-titlebar-settings:hover,
+.app-titlebar-settings:active {
+  background-image: url('../assets/설정창2선택.png');
 }
 
 body:has(#screen-main.active) .app-titlebar {
@@ -1319,20 +1344,6 @@ button:disabled {
   background: linear-gradient(160deg, var(--retro-warn-pink-start), var(--retro-warn-pink-end));
 }
 
-.block-fight-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
-  padding: clamp(24px, 3vw, 52px);
-  border-radius: 0;
-  background: transparent;
-  text-align: center;
-}
-
 .meeting-rules-list {
   display: grid;
   gap: 10px;
@@ -1347,10 +1358,6 @@ button:disabled {
 .main-layout.is-meeting-active .meeting-title,
 .main-layout.is-meeting-active .meeting-rules-list {
   color: inherit;
-}
-
-.main-layout.is-meeting-active .block-fight-overlay .meeting-rules-list {
-  color: var(--ink);
 }
 
 .meeting-consent-copy {
@@ -1432,11 +1439,37 @@ button:disabled {
 }
 
 .meeting-active-page.guide-state-block-fight .meeting-recording-body {
-  padding: 0;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(12px, 1.4vw, 24px);
+  overflow-y: auto;
   background:
     radial-gradient(circle at 52% 54%, rgba(245, 141, 165, 0.98), rgba(255, 236, 241, 0.96) 78%),
     #f5a0b4;
+}
+
+/* 잠금 화면: 모임 시작 전 수칙 화면(.meeting-rules-page)과 같은 구성을 좁은 공간에 맞춘 크기 */
+.block-fight-copy {
+  margin: auto;
+}
+
+.block-fight-copy .meeting-title {
+  color: #050505;
+  font-size: clamp(1.4rem, 2.2vw, 2.6rem);
+  line-height: 1.3;
+}
+
+.block-fight-copy .meeting-rules-list {
+  gap: clamp(6px, 0.8vw, 14px);
+  margin-top: clamp(12px, 1.4vw, 26px);
+  color: #050505;
+  font-size: clamp(1rem, 1.5vw, 1.8rem);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.block-fight-copy .meeting-confirm-btn {
+  margin-top: clamp(14px, 1.6vw, 28px);
 }
 
 .meeting-recording-status,
@@ -1545,48 +1578,6 @@ button:disabled {
   min-width: 0;
 }
 
-.block-fight-title {
-  margin: 0;
-  color: #050505;
-  font-size: clamp(2rem, 3.2vw, 4rem);
-  font-weight: 400;
-  line-height: 1.2;
-}
-
-.block-fight-overlay .meeting-rules-list {
-  grid-template-columns: repeat(2, max-content);
-  justify-content: center;
-  gap: clamp(14px, 2vh, 24px) clamp(24px, 3vw, 54px);
-  margin-top: clamp(34px, 4vh, 58px);
-  font-size: clamp(1.25rem, 2vw, 2.5rem);
-}
-
-.block-fight-overlay .meeting-rules-list li:last-child {
-  grid-column: 1 / -1;
-}
-
-.block-fight-reset {
-  margin-top: clamp(36px, 4vh, 64px);
-  font-size: clamp(1.15rem, 1.8vw, 2.1rem);
-}
-
-.guide-state-block-fight .block-fight-overlay {
-  padding: 18px 24px;
-}
-
-.guide-state-block-fight .block-fight-title {
-  font-size: clamp(1.65rem, 2.7vw, 3.25rem);
-}
-
-.guide-state-block-fight .block-fight-overlay .meeting-rules-list {
-  gap: 12px clamp(22px, 2.5vw, 44px);
-  margin-top: 24px;
-  font-size: clamp(1.05rem, 1.65vw, 2rem);
-}
-
-.guide-state-block-fight .block-fight-reset {
-  margin-top: 24px;
-}
 
 .meeting-topic-list {
   display: grid;
@@ -2093,6 +2084,296 @@ button:disabled {
   border-radius: 0;
 }
 
+.info-window-overlay {
+  padding: var(--titlebar-height) var(--desktop-frame) 0
+    calc(var(--desktop-frame) + (100vw - 2 * var(--desktop-frame) - clamp(20px, 2.1vw, 40px)) / 3.08 + clamp(20px, 2.1vw, 40px));
+  background: transparent;
+}
+
+.info-window {
+  --rating-copy-size: clamp(1rem, 1.6vw, 1.9rem);
+  position: relative;
+  width: min(82%, 986px);
+  height: min(74dvh, 35.3vw, 677px);
+  min-height: min(420px, 85dvh);
+  max-height: calc(100dvh - 64px);
+  flex: none;
+}
+
+.info-window-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.info-window-titlebar {
+  position: absolute;
+  top: 0.8%;
+  right: 0.9%;
+  left: 0.9%;
+  display: flex;
+  align-items: center;
+  height: clamp(32px, 2.7vw, 52px);
+  padding: 0 clamp(12px, 1vw, 20px);
+  background: linear-gradient(90deg, #5d8090, #080078);
+  color: #ffffff;
+  font-size: var(--rating-copy-size);
+}
+
+.info-window-body {
+  position: absolute;
+  top: 9.8%;
+  right: 1.9%;
+  bottom: 3.8%;
+  left: 2%;
+  display: block;
+  overflow-y: auto;
+}
+
+.help-content {
+  padding: clamp(12px, 1.4vw, 28px) clamp(14px, 1.8vw, 36px);
+  color: var(--ink);
+  font-size: calc(var(--rating-copy-size) * 0.82);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.help-step + .help-step {
+  margin-top: 0.8em;
+}
+
+.help-content strong {
+  color: var(--orange);
+  font-weight: inherit;
+}
+
+.help-step-title {
+  margin: 0 0 0.3em;
+  color: #080078;
+  font-size: 1.05em;
+}
+
+.help-step p {
+  margin: 0;
+}
+
+.help-step ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.db-settings {
+  --db-thumb-width: 16px;
+  padding: clamp(12px, 1.4vw, 28px) clamp(14px, 1.8vw, 36px);
+  color: var(--ink);
+  font-size: calc(var(--rating-copy-size) * 0.82);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.db-settings-title {
+  margin: 0 0 0.3em;
+  color: #080078;
+  font-size: 1.05em;
+}
+
+.db-settings-desc {
+  margin: 0;
+}
+
+/* 손잡이 중심이 이동하는 범위(양끝에서 손잡이 절반만큼 안쪽)에 맞춰 트랙과 라벨을 배치한다. */
+.db-slider {
+  position: relative;
+  height: 4.4em;
+  margin-top: 1.6em;
+}
+
+.db-slider-rail {
+  position: absolute;
+  top: 1.1em;
+  right: calc(var(--db-thumb-width) / 2);
+  left: calc(var(--db-thumb-width) / 2);
+  height: 18px;
+}
+
+.db-slider-track {
+  height: 100%;
+  border: 2px solid;
+  border-color: #81817b #fffef5 #fffef5 #81817b;
+  background: linear-gradient(90deg,
+    #4caf50 0 var(--quiet-pos),
+    #ffc107 var(--quiet-pos) var(--loud-pos),
+    #f44336 var(--loud-pos) 100%);
+  box-shadow: inset 1px 1px #454541;
+}
+
+.db-slider-live {
+  position: absolute;
+  top: -12px;
+  bottom: -2px;
+  left: var(--live-pos);
+  width: 0;
+  pointer-events: none;
+}
+
+.db-slider-live::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -6px;
+  border-top: 8px solid var(--ink);
+  border-right: 6px solid transparent;
+  border-left: 6px solid transparent;
+}
+
+.db-slider-live::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--ink);
+}
+
+.db-slider-input {
+  position: absolute;
+  top: calc(1.1em - 7px);
+  left: 0;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.db-slider-input::-webkit-slider-runnable-track {
+  height: 32px;
+  background: transparent;
+}
+
+.db-slider-input::-webkit-slider-thumb {
+  width: var(--db-thumb-width);
+  height: 32px;
+  border: 2px solid;
+  border-color: #fffef5 #454541 #454541 #fffef5;
+  border-radius: 0;
+  background: var(--retro-face);
+  box-shadow: inset -1px -1px #81817b;
+  cursor: ew-resize;
+  pointer-events: auto;
+  -webkit-appearance: none;
+}
+
+.db-slider-input::-moz-range-track {
+  background: transparent;
+}
+
+.db-slider-input::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--db-thumb-width);
+  height: 32px;
+  border: 2px solid;
+  border-color: #fffef5 #454541 #454541 #fffef5;
+  border-radius: 0;
+  background: var(--retro-face);
+  box-shadow: inset -1px -1px #81817b;
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.db-slider-input:focus-visible {
+  outline: none;
+}
+
+.db-slider-input:focus-visible::-webkit-slider-thumb {
+  outline: 2px dotted var(--ink);
+  outline-offset: 1px;
+}
+
+.db-slider-input:focus-visible::-moz-range-thumb {
+  outline: 2px dotted var(--ink);
+  outline-offset: 1px;
+}
+
+.db-slider-zones {
+  position: absolute;
+  right: calc(var(--db-thumb-width) / 2);
+  bottom: 0;
+  left: calc(var(--db-thumb-width) / 2);
+  display: grid;
+  grid-template-columns: var(--quiet-pos) calc(var(--loud-pos) - var(--quiet-pos)) 1fr;
+  font-size: 0.85em;
+}
+
+.db-slider-zone {
+  overflow: visible;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.db-settings-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 1.4em;
+}
+
+.db-settings-now {
+  margin: 0;
+}
+
+.db-settings-now-value {
+  padding: 0 0.4em;
+  border: 1px solid var(--ink);
+}
+
+.db-settings-now-value[data-level='quiet'] { background: #4caf50; color: #ffffff; }
+.db-settings-now-value[data-level='moderate'] { background: #ffc107; color: #111111; }
+.db-settings-now-value[data-level='loud'] { background: #f44336; color: #ffffff; }
+
+.db-settings-reset {
+  padding: 0.25em 0.9em;
+  border: 2px solid;
+  border-color: #fffef5 #454541 #454541 #fffef5;
+  background: var(--retro-face);
+  box-shadow: inset -1px -1px #81817b;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.db-settings-reset:active {
+  border-color: #454541 #fffef5 #fffef5 #454541;
+  box-shadow: inset 1px 1px #81817b;
+}
+
+.db-settings-reset:focus-visible {
+  outline: 2px dotted var(--ink);
+  outline-offset: -5px;
+}
+
+.info-window-close {
+  position: absolute;
+  z-index: 1;
+  top: calc(0.8% + 2px);
+  right: calc(0.9% + 2px);
+  width: clamp(22px, 1.6vw, 30px);
+  height: clamp(22px, 1.6vw, 30px);
+  border: 0;
+  background: url('../assets/buttons/취소창.png') center / 100% 100% no-repeat;
+  cursor: pointer;
+}
+
+.info-window-close:focus-visible {
+  outline: 3px solid #111111;
+  outline-offset: -3px;
+}
+
 .rating-scroll-frame {
   position: relative;
   min-width: 0;
@@ -2221,11 +2502,57 @@ button:disabled {
 
 @media (min-width: 761px) and (max-width: 1100px) {
   #rating-modal .rating-window { width: 96%; }
+  .info-window { width: 96%; }
   .rating-compose-toolbar { gap: 8px; padding-inline: 8px; }
 }
 
 @media (max-width: 760px) {
   #rating-modal { padding: 12px; }
+  .info-window-overlay { padding: 12px; }
+  .info-window {
+    --rating-copy-size: 1rem;
+    display: grid;
+    grid-template-rows: 38px minmax(0, 1fr);
+    width: 100%;
+    height: min(680px, 85dvh);
+    min-height: 0;
+    max-height: calc(100dvh - 24px);
+    padding: 5px;
+    border: 4px solid;
+    border-color: #fffef5 #81817b #81817b #fffef5;
+    background: var(--retro-cream);
+  }
+  .info-window-image { display: none; }
+  .info-window-titlebar {
+    position: static;
+    display: flex;
+    align-items: center;
+    height: auto;
+    padding: 0 40px 0 8px;
+    background: linear-gradient(90deg, #5d8090, #080078);
+    color: #ffffff;
+    font-size: var(--rating-copy-size);
+  }
+  .info-window-body {
+    display: block;
+    min-height: 0;
+    margin-top: 10px;
+    border: 3px solid;
+    border-color: #81818b #afb2c7 #afb2c7 #81818b;
+    background: #f7fcfe;
+  }
+  .info-window-body {
+    position: static;
+    overflow-y: auto;
+  }
+  .help-content,
+  .db-settings { padding: 12px; font-size: 0.82rem; }
+  .info-window-close {
+    top: 7px;
+    right: 7px;
+    width: 24px;
+    height: 24px;
+  }
   #rating-modal .rating-window {
     --retro-scrollbar-size: 28px;
     --rating-copy-size: 1rem;
@@ -2276,7 +2603,8 @@ button:disabled {
     --retro-scrollbar-size: clamp(22px, 2.1vw, 36px);
   }
   .app-titlebar { font-size: clamp(16px, 1.35vw, 24px); }
-  .app-titlebar-help { width: 30px; height: 30px; }
+  .app-titlebar-help,
+  .app-titlebar-settings { width: 30px; height: 30px; }
 
   #screen-main {
     padding: var(--desktop-frame);
@@ -2415,10 +2743,13 @@ button:disabled {
   .meeting-guide-dock .guide-bubble-line { font-size: clamp(0.9rem, 1vw, 1.2rem); }
   .meeting-guide-dock .guide-bubble-option { font-size: clamp(0.88rem, 1vw, 1.15rem); }
   .meeting-guide-dock .guide-character { width: clamp(115px, 13vw, 180px); max-height: 205px; }
-  .guide-state-block-fight .block-fight-title { font-size: clamp(1.45rem, 2.2vw, 2.7rem); }
-  .guide-state-block-fight .block-fight-overlay .meeting-rules-list { font-size: clamp(0.95rem, 1.35vw, 1.55rem); }
 
   #rating-modal .rating-window {
+    --rating-copy-size: clamp(0.9rem, 1.3vw, 1.45rem);
+    width: min(75%, 860px);
+    height: min(68dvh, 32vw, 580px);
+  }
+  .info-window {
     --rating-copy-size: clamp(0.9rem, 1.3vw, 1.45rem);
     width: min(75%, 860px);
     height: min(68dvh, 32vw, 580px);
@@ -2832,6 +3163,20 @@ button:disabled {
     margin-top: 28px;
   }
 
+  .block-fight-copy .meeting-title {
+    font-size: 1.35rem;
+  }
+
+  .block-fight-copy .meeting-rules-list {
+    gap: 8px;
+    margin-top: 18px;
+    font-size: var(--mobile-meeting-copy-size);
+  }
+
+  .block-fight-copy .meeting-confirm-btn {
+    margin-top: 20px;
+  }
+
   .meeting-permission-copy {
     margin-top: 14px;
     font-size: var(--mobile-year-title-size);
@@ -2901,27 +3246,6 @@ button:disabled {
 
   .meeting-state-message + .meeting-state-message {
     margin-top: 12px;
-  }
-
-  .block-fight-overlay {
-    padding: 18px 12px;
-  }
-
-  .block-fight-title {
-    font-size: 1.35rem;
-  }
-
-  .block-fight-overlay .meeting-rules-list {
-    gap: 9px 14px;
-    margin-top: 24px;
-    font-size: 0.85rem;
-  }
-
-  .block-fight-reset {
-    min-height: 38px;
-    margin-top: 24px;
-    padding-inline: 14px;
-    font-size: 0.9rem;
   }
 
   .meeting-topic-list {

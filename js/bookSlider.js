@@ -872,6 +872,7 @@ function renderMeetingRules(detail, handlers) {
 
 function createMeetingCopy({
   includeConsent = false,
+  confirmLabel = '진짜 시작하기!',
   onConfirm,
   className = '',
   notice = '',
@@ -890,7 +891,7 @@ function createMeetingCopy({
     const confirmButton = document.createElement('button');
     confirmButton.className = 'detail-action-primary btn-book-action meeting-confirm-btn';
     confirmButton.type = 'button';
-    confirmButton.textContent = '진짜 시작하기!';
+    confirmButton.textContent = confirmLabel;
     confirmButton.addEventListener('click', onConfirm);
     copy.appendChild(confirmButton);
   }
@@ -1045,21 +1046,12 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
 
   if (isBlocked) {
     page.classList.add('guide-state-block-fight');
-    const lockPanel = document.createElement('div');
-    lockPanel.className = 'block-fight-overlay';
-
-    const lockTitle = document.createElement('h2');
-    lockTitle.className = 'block-fight-title';
-    lockTitle.textContent = '건전한 독서모임을 위한 수칙';
-
-    const resetButton = document.createElement('button');
-    resetButton.type = 'button';
-    resetButton.className = 'detail-action-primary block-fight-reset';
-    resetButton.textContent = '다시 시작하기!';
-    resetButton.addEventListener('click', () => handlers.onGuideReset?.());
-
-    lockPanel.append(lockTitle, createMeetingRulesList(), resetButton);
-    body.appendChild(lockPanel);
+    body.appendChild(createMeetingCopy({
+      includeConsent: true,
+      confirmLabel: '다시 시작하기!',
+      onConfirm: () => handlers.onGuideReset?.(),
+      className: 'meeting-rules-copy block-fight-copy',
+    }));
     finishButton.disabled = true;
   } else if (!hasOverrideText) {
     const status = document.createElement('p');
@@ -1103,7 +1095,7 @@ function renderMeetingActive(detail, selectedPeriod, handlers) {
     }
   }
 
-  if (handlers.meetingLog?.length) {
+  if (handlers.meetingLog?.length && !isBlocked) {
     const logPanel = document.createElement('div');
     logPanel.className = 'meeting-log-panel';
 

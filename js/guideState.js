@@ -9,7 +9,7 @@ export const GUIDE_STATES = {
 
 export const QUIET_HELP_MS = 30000;
 export const MODERATE_ENCOURAGE_MS = 30000;
-export const LOUD_BLOCK_MS = 8000;
+export const LOUD_BLOCK_MS = 5000;
 
 export function computeGuideState({ level, levelSinceMs, now }) {
   const elapsed = now - levelSinceMs;

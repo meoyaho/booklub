@@ -20,6 +20,13 @@ import {
 } from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
+import {
+  getThresholds,
+  setThresholds,
+  resetThresholds,
+  SLIDER_MIN_DB,
+  SLIDER_MAX_DB,
+} from './decibel.js';
 import { Recorder } from './recorder.js';
 import { calcAverage } from './ratings.js';
 import { computeGuideState, GUIDE_STATES } from './guideState.js';
@@ -43,6 +50,8 @@ let meetingLog = [];
 let meetingLogExpanded = false;
 let uploadedFile = null;
 let meetingStartedAt = null;
+let meetingPausedMs = 0;
+let meetingPausedAt = null;
 const today = new Date();
 let selectedPeriod = {
   year: today.getFullYear(),
@@ -277,9 +286,16 @@ function syncLogoMode() {
   setLogoMode('docked');
 }
 
+// 잠겨서 녹음이 멈춘 시간은 빼서, 기록 시각이 녹음 파일 안의 위치와 맞도록 한다.
+function getMeetingElapsedMs(now = Date.now()) {
+  if (!meetingStartedAt) return 0;
+  const currentPauseMs = meetingPausedAt ? now - meetingPausedAt : 0;
+  return now - meetingStartedAt - meetingPausedMs - currentPauseMs;
+}
+
 function logGuideMessage(text) {
   if (!text) return;
-  const elapsed = meetingStartedAt ? (Date.now() - meetingStartedAt) / 1000 : 0;
+  const elapsed = getMeetingElapsedMs() / 1000;
   meetingLog = [...meetingLog, { time: elapsed, text }];
 }
 
@@ -298,6 +314,9 @@ function syncMainLayoutState() {
   if (!layout) return;
 
   const isMeetingScreen = mainView === 'meeting-intro' || mainView === 'meeting-rules' || mainView === 'meeting-active';
+  if (mainView !== 'meeting-active' && document.getElementById('info-window-overlay')?.dataset.window === 'settings') {
+    closeInfoWindow({ restoreFocus: false });
+  }
   const isMobileDetailPage = !isMeetingScreen && mobilePage === 'detail';
   layout.classList.toggle('is-meeting-intro', mainView === 'meeting-intro');
   layout.classList.toggle('is-meeting-rules', mainView === 'meeting-rules');
@@ -309,6 +328,249 @@ function syncMainLayoutState() {
   document.getElementById('screen-main')?.classList.toggle('is-mobile-detail-page', isMobileDetailPage);
   updateMeetingLevelClass();
   updateScrollArrowVisibility();
+}
+
+function closeInfoWindow({ restoreFocus = true } = {}) {
+  const overlay = document.getElementById('info-window-overlay');
+  if (!overlay) return;
+  const returnFocus = overlay.returnFocus;
+  overlay.remove();
+  if (restoreFocus && returnFocus?.isConnected && returnFocus.getClientRects().length) {
+    returnFocus.focus({ preventScroll: true });
+  }
+}
+
+const HELP_STEPS = [
+  {
+    title: '1. 이달의 책 정하기',
+    paragraphs: ['왼쪽 달력에서 달을 고르고 **?**를 눌러 책을 검색해요. 책을 잘못 골랐다면 **수정 > 책 바꾸기**를 누르면 돼요.'],
+  },
+  {
+    title: '2. 독서모임 시작!',
+    paragraphs: ['**독서모임 시작!**을 누르면 녹음이 시작돼요. 할 말이 떠오르지 않을 때는 아래쪽 **길잡이**를 눌러 이야깃거리를 받아보세요.'],
+  },
+  {
+    title: '3. 길잡이가 지켜봐요',
+    items: [
+      '30초 동안 조용하면 → 대화 주제를 제안해요',
+      '대화가 잘 이어지면 → 칭찬해줘요 👍',
+      '목소리가 너무 커지면 → 잠깐 쉬자고 하고, 다 같이 수칙을 외쳐요',
+    ],
+  },
+  {
+    title: '4. 마무리',
+    paragraphs: ['**완료!**를 누르면 녹음을 분석해서 요약을 만들어줘요. 별점과 감상평을 남기고 **공유** 버튼으로 카드를 나눌 수 있어요. 따로 녹음한 파일이 있다면 **녹음본 업로드**로 올리면 돼요.'],
+  },
+];
+
+function appendHelpText(parent, text) {
+  text.split(/(\*\*[^*]+\*\*)/).forEach((part) => {
+    if (!part) return;
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const strong = document.createElement('strong');
+      strong.textContent = part.slice(2, -2);
+      parent.appendChild(strong);
+    } else {
+      parent.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
+function createHelpContent() {
+  const content = document.createElement('div');
+  content.className = 'help-content';
+  HELP_STEPS.forEach(({ title, paragraphs = [], items = [] }) => {
+    const section = document.createElement('section');
+    section.className = 'help-step';
+    const heading = document.createElement('h3');
+    heading.className = 'help-step-title';
+    heading.textContent = title;
+    section.appendChild(heading);
+    paragraphs.forEach((text) => {
+      const p = document.createElement('p');
+      appendHelpText(p, text);
+      section.appendChild(p);
+    });
+    if (items.length) {
+      const list = document.createElement('ul');
+      items.forEach((text) => {
+        const li = document.createElement('li');
+        appendHelpText(li, text);
+        list.appendChild(li);
+      });
+      section.appendChild(list);
+    }
+    content.appendChild(section);
+  });
+  return content;
+}
+
+const LEVEL_LABELS = { quiet: '조용함', moderate: '적당함', loud: '시끄러움' };
+let liveDb = SLIDER_MIN_DB;
+
+function dbToPercent(db) {
+  const clamped = Math.min(SLIDER_MAX_DB, Math.max(SLIDER_MIN_DB, db));
+  return ((clamped - SLIDER_MIN_DB) / (SLIDER_MAX_DB - SLIDER_MIN_DB)) * 100;
+}
+
+function syncDecibelSlider(slider) {
+  const { quiet, loud } = getThresholds();
+  slider.style.setProperty('--quiet-pos', `${dbToPercent(quiet)}%`);
+  slider.style.setProperty('--loud-pos', `${dbToPercent(loud)}%`);
+  slider.querySelectorAll('.db-slider-input').forEach((input) => {
+    const value = input.dataset.kind === 'quiet' ? quiet : loud;
+    input.value = String(value);
+    input.setAttribute('aria-valuetext', `${Math.round(dbToPercent(value))}%`);
+  });
+}
+
+function updateLiveDecibel(level, db) {
+  const meter = document.querySelector('.db-settings');
+  if (!meter) return;
+  liveDb = Number.isFinite(db) ? db : SLIDER_MIN_DB;
+  meter.querySelector('.db-slider')?.style.setProperty('--live-pos', `${dbToPercent(liveDb)}%`);
+  const nowLabel = meter.querySelector('.db-settings-now-value');
+  if (nowLabel && nowLabel.dataset.level !== level) {
+    nowLabel.dataset.level = level;
+    nowLabel.textContent = LEVEL_LABELS[level];
+  }
+}
+
+function createDecibelSettings() {
+  const content = document.createElement('div');
+  content.className = 'db-settings';
+
+  const heading = document.createElement('h3');
+  heading.className = 'db-settings-title';
+  heading.textContent = '소리 기준 조절';
+  const desc = document.createElement('p');
+  desc.className = 'db-settings-desc';
+  desc.textContent = '손잡이를 움직여 조용함과 시끄러움의 기준을 바꿀 수 있어요. ▼ 표시는 지금 들리는 소리 크기예요.';
+
+  const slider = document.createElement('div');
+  slider.className = 'db-slider';
+  slider.style.setProperty('--live-pos', `${dbToPercent(liveDb)}%`);
+  const rail = document.createElement('div');
+  rail.className = 'db-slider-rail';
+  const track = document.createElement('div');
+  track.className = 'db-slider-track';
+  const live = document.createElement('div');
+  live.className = 'db-slider-live';
+  live.setAttribute('aria-hidden', 'true');
+  rail.append(track, live);
+  slider.appendChild(rail);
+
+  [
+    ['quiet', '조용함 기준'],
+    ['loud', '시끄러움 기준'],
+  ].forEach(([kind, ariaLabel]) => {
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.className = 'db-slider-input';
+    input.dataset.kind = kind;
+    input.min = String(SLIDER_MIN_DB);
+    input.max = String(SLIDER_MAX_DB);
+    input.step = '1';
+    input.setAttribute('aria-label', ariaLabel);
+    input.addEventListener('input', () => {
+      setThresholds({ [kind]: Number(input.value) });
+      syncDecibelSlider(slider);
+    });
+    slider.appendChild(input);
+  });
+
+  const zones = document.createElement('div');
+  zones.className = 'db-slider-zones';
+  zones.setAttribute('aria-hidden', 'true');
+  MEETING_LEVELS.forEach((level) => {
+    const zone = document.createElement('span');
+    zone.className = `db-slider-zone is-${level}`;
+    zone.textContent = LEVEL_LABELS[level];
+    zones.appendChild(zone);
+  });
+  slider.appendChild(zones);
+
+  const footer = document.createElement('div');
+  footer.className = 'db-settings-footer';
+  const now = document.createElement('p');
+  now.className = 'db-settings-now';
+  now.append('지금 소리: ');
+  const nowValue = document.createElement('span');
+  nowValue.className = 'db-settings-now-value';
+  nowValue.dataset.level = meetingLevel;
+  nowValue.textContent = LEVEL_LABELS[meetingLevel];
+  now.appendChild(nowValue);
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'db-settings-reset';
+  resetButton.textContent = '기본값으로';
+  resetButton.addEventListener('click', () => {
+    resetThresholds();
+    syncDecibelSlider(slider);
+  });
+  footer.append(now, resetButton);
+
+  syncDecibelSlider(slider);
+  content.append(heading, desc, slider, footer);
+  return content;
+}
+
+function openInfoWindow(kind) {
+  closeInfoWindow({ restoreFocus: false });
+
+  const isSettings = kind === 'settings';
+  const label = isSettings ? '설정' : '어떻게 사용하나요?';
+  const overlay = document.createElement('div');
+  overlay.id = 'info-window-overlay';
+  overlay.className = 'rating-modal-overlay info-window-overlay';
+  overlay.dataset.window = kind;
+  overlay.returnFocus = document.activeElement;
+
+  const windowEl = document.createElement('section');
+  windowEl.className = 'info-window';
+  windowEl.dataset.window = kind;
+  windowEl.setAttribute('role', 'dialog');
+  windowEl.setAttribute('aria-modal', 'true');
+  windowEl.setAttribute('aria-label', label);
+
+  const image = document.createElement('img');
+  image.className = 'info-window-image';
+  image.src = isSettings ? 'assets/설정창.png' : 'assets/물음표창.png';
+  image.alt = '';
+  image.draggable = false;
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'info-window-titlebar';
+  titlebar.textContent = label;
+  const body = document.createElement('div');
+  body.className = 'info-window-body';
+  body.appendChild(isSettings ? createDecibelSettings() : createHelpContent());
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'info-window-close';
+  closeButton.setAttribute('aria-label', `${label} 닫기`);
+  closeButton.addEventListener('click', () => closeInfoWindow());
+
+  windowEl.append(image, titlebar, body, closeButton);
+  overlay.appendChild(windowEl);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) closeInfoWindow();
+  });
+  overlay.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeInfoWindow();
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      const focusables = [...windowEl.querySelectorAll('button, input')];
+      const index = focusables.indexOf(document.activeElement);
+      const step = event.shiftKey ? -1 : 1;
+      focusables[(index + step + focusables.length) % focusables.length]?.focus();
+    }
+  });
+  document.body.appendChild(overlay);
+  closeButton.focus({ preventScroll: true });
 }
 
 function updateScrollArrowVisibility() {
@@ -666,10 +928,11 @@ function readAudioDurationSeconds(file) {
   });
 }
 
-function handleDecibelLevel(level) {
+function handleDecibelLevel(level, db, since = Date.now()) {
+  updateLiveDecibel(level, db);
   if (level !== meetingLevel) {
     meetingLevel = level;
-    levelSinceMs = Date.now();
+    levelSinceMs = since;
   }
   updateMeetingLevelClass(level);
 
@@ -687,7 +950,11 @@ function handleDecibelLevel(level) {
 
   if (nextGuideState !== guideState) {
     guideState = nextGuideState;
-    if (guideState === GUIDE_STATES.BLOCK_FIGHT) meetingGuideView = 'hidden';
+    if (guideState === GUIDE_STATES.BLOCK_FIGHT) {
+      meetingGuideView = 'hidden';
+      currentRecorder?.pause();
+      meetingPausedAt = Date.now();
+    }
     logGuideMessage(GUIDE_CHARACTER_CONTENT[guideState]?.bodyLines?.[0]);
     renderMain();
   }
@@ -727,7 +994,7 @@ function getMicrophoneErrorMessage(err) {
   return '마이크를 시작하지 못했습니다. 권한과 연결 상태를 확인해주세요.';
 }
 
-async function startMeeting({ skipWelcome = false } = {}) {
+async function startMeeting() {
   try {
     meetingPermissionMessage = '';
     meetingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -742,11 +1009,13 @@ async function startMeeting({ skipWelcome = false } = {}) {
   meetingPermissionMessage = '';
   levelSinceMs = Date.now();
   guideState = GUIDE_STATES.NONE;
-  meetingGuideView = skipWelcome ? 'hidden' : 'closed';
+  meetingGuideView = 'closed';
   activeMeetingTopicIndex = null;
   meetingLog = [];
   meetingLogExpanded = false;
   meetingStartedAt = Date.now();
+  meetingPausedMs = 0;
+  meetingPausedAt = null;
   mainView = 'meeting-active';
   decibelMonitor = new DecibelMonitor(meetingStream, handleDecibelLevel);
   currentRecorder = new Recorder(meetingStream);
@@ -777,9 +1046,11 @@ async function finishMeeting(event) {
     const meta = {};
     if (meetingStartedAt) {
       meta.meetingDate = toLocalDateString(new Date(meetingStartedAt));
-      meta.discussionDurationSeconds = Math.round((Date.now() - meetingStartedAt) / 1000);
+      meta.discussionDurationSeconds = Math.round(getMeetingElapsedMs() / 1000);
     }
     meetingStartedAt = null;
+    meetingPausedMs = 0;
+    meetingPausedAt = null;
 
     await runAnalysis(blob, meta);
   } catch (err) {
@@ -787,22 +1058,20 @@ async function finishMeeting(event) {
   }
 }
 
-async function resetMeetingAfterFight() {
-  try {
-    decibelMonitor?.stop();
-    meetingStream?.getTracks().forEach((track) => track.stop());
-    await currentRecorder?.stop();
-  } catch (err) {
-    // 녹음 중단 실패는 무시하고 계속 리셋 진행
+// 잠금만 풀고 녹음·기록·모임 시작 시각은 그대로 이어간다.
+function resetMeetingAfterFight() {
+  decibelMonitor?.resetLevel();
+  currentRecorder?.resume();
+  if (meetingPausedAt) {
+    meetingPausedMs += Date.now() - meetingPausedAt;
+    meetingPausedAt = null;
   }
-  decibelMonitor = null;
-  meetingStream = null;
-  currentRecorder = null;
   meetingLevel = 'quiet';
+  levelSinceMs = Date.now();
   guideState = GUIDE_STATES.NONE;
   meetingGuideView = 'hidden';
   activeMeetingTopicIndex = null;
-  await startMeeting({ skipWelcome: true });
+  renderMain();
 }
 
 async function runAnalysis(blob, meta = {}) {
@@ -1058,6 +1327,8 @@ document.getElementById('panel-scroll-up')?.addEventListener('click', () => {
 document.getElementById('panel-scroll-down')?.addEventListener('click', () => {
   document.getElementById('month-detail')?.scrollBy({ top: 80, behavior: 'smooth' });
 });
+document.querySelector('.app-titlebar-help')?.addEventListener('click', () => openInfoWindow('help'));
+document.querySelector('.app-titlebar-settings')?.addEventListener('click', () => openInfoWindow('settings'));
 window.addEventListener('resize', () => {
   updateScrollArrowVisibility();
   updateMonthGridScrollArrowVisibility();

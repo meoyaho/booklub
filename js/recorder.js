@@ -9,6 +9,14 @@ export class Recorder {
     this.mediaRecorder.start();
   }
 
+  pause() {
+    if (this.mediaRecorder.state === 'recording') this.mediaRecorder.pause();
+  }
+
+  resume() {
+    if (this.mediaRecorder.state === 'paused') this.mediaRecorder.resume();
+  }
+
   stop() {
     return new Promise((resolve) => {
       this.mediaRecorder.onstop = () => {

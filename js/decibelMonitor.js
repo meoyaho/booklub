@@ -1,5 +1,5 @@
 // js/decibelMonitor.js
-import { rmsToDb, classifyLevel } from './decibel.js';
+import { createLevelTracker } from './decibel.js';
 
 export class DecibelMonitor {
   constructor(stream, onLevel) {
@@ -14,6 +14,7 @@ export class DecibelMonitor {
 
     this.data = new Float32Array(this.analyser.fftSize);
     this.onLevel = onLevel;
+    this.tracker = createLevelTracker();
     this.running = true;
     this._tick();
   }
@@ -26,11 +27,14 @@ export class DecibelMonitor {
     for (let i = 0; i < this.data.length; i++) {
       sumSquares += this.data[i] * this.data[i];
     }
-    const rms = Math.sqrt(sumSquares / this.data.length);
-    const db = rmsToDb(rms);
-    this.onLevel(classifyLevel(db));
+    const { level, since, db } = this.tracker.update(sumSquares / this.data.length, Date.now());
+    this.onLevel(level, db, since);
 
     requestAnimationFrame(() => this._tick());
+  }
+
+  resetLevel() {
+    this.tracker.reset(Date.now());
   }
 
   stop() {
