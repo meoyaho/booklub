@@ -794,7 +794,6 @@ async function addSearchResultToMonth(book) {
       summary: existingBook?.summary || '',
       avgRating: existingBook?.avgRating || 0,
       participantCount: existingBook?.participantCount || 0,
-      recordingUrl: existingBook?.recordingUrl || '',
     };
 
     await updateBook(currentClubId, bookId, replacement);
@@ -1096,7 +1095,6 @@ async function runAnalysis(blob, meta = {}) {
       clubId: currentClubId,
       bookId: currentBookId,
       storagePath: recording.path,
-      recordingUrl: recording.url,
       contentType: recording.contentType,
       book: {
         title: book?.title || '',
@@ -1107,8 +1105,6 @@ async function runAnalysis(blob, meta = {}) {
       },
     });
     const analysisUpdate = {
-      recordingUrl: analysis.recordingUrl || recording.url,
-      recordingPath: analysis.recordingPath || recording.path,
       summary: analysis.summary || '',
       status: analysis.status || 'reviewing',
       reviews: analysis.reviews || [],
@@ -1119,7 +1115,7 @@ async function runAnalysis(blob, meta = {}) {
     };
     allBooks = allBooks.map((entry) => (
       entry.id === currentBookId
-        ? { ...entry, ...analysisUpdate }
+        ? { ...entry, ...analysisUpdate, recordingUrl: '', recordingPath: '' }
         : entry
     ));
     mainView = 'detail';
@@ -1147,7 +1143,6 @@ async function runAnalysis(blob, meta = {}) {
 
     if (recording && currentBookId) {
       const manualUpdate = {
-        recordingUrl: recording.url,
         recordingPath: recording.path,
         summary: book?.summary || '',
         status: 'reviewing',

@@ -334,7 +334,6 @@ export const analyzeRecording = onCall(
     const clubId = asString(data.clubId);
     const bookId = asString(data.bookId);
     const storagePath = asString(data.storagePath);
-    const recordingUrl = asString(data.recordingUrl);
     const contentType = asString(data.contentType);
     const book = safeBookPayload(data.book);
 
@@ -385,8 +384,8 @@ export const analyzeRecording = onCall(
       }
 
       const update = {
-        recordingUrl,
-        recordingPath: storagePath,
+        recordingUrl: FieldValue.delete(),
+        recordingPath: FieldValue.delete(),
         summary,
         status: 'reviewing',
         reviews: [],
@@ -405,9 +404,18 @@ export const analyzeRecording = onCall(
 
       await getFirestore().doc(`clubs/${clubId}/books/${bookId}`).update(update);
 
+      try {
+        await getStorage().bucket(STORAGE_BUCKET).file(storagePath).delete();
+      } catch (deleteError) {
+        console.error('analyzed recording cleanup failed', JSON.stringify({
+          clubId,
+          bookId,
+          storagePath,
+          error: deleteError?.message,
+        }));
+      }
+
       return {
-        recordingUrl,
-        recordingPath: storagePath,
         summary,
         status: 'reviewing',
         reviews: [],

@@ -17,7 +17,6 @@ import {
   getStorage,
   ref,
   uploadBytes,
-  getDownloadURL,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 import {
   getFunctions,
@@ -118,8 +117,7 @@ export async function uploadRecording(clubId, bookId, file) {
   const path = `recordings/${clubId}/${bookId}/${Date.now()}.${extension}`;
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, file, { contentType });
-  const url = await getDownloadURL(storageRef);
-  return { url, path, contentType };
+  return { path, contentType };
 }
 
 export async function analyzeRecording(data) {
