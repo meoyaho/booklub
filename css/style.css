@@ -366,6 +366,17 @@ body:has(#screen-main.active) .app-titlebar {
   padding-right: var(--retro-scrollbar-size);
 }
 
+/* 직접 그린 스크롤바와 브라우저 기본 스크롤바가 겹치지 않게 한다. */
+.uses-retro-scrollbar .month-grid,
+.uses-retro-scrollbar .month-detail {
+  scrollbar-width: none;
+}
+
+.uses-retro-scrollbar .month-grid::-webkit-scrollbar,
+.uses-retro-scrollbar .month-detail::-webkit-scrollbar {
+  display: none;
+}
+
 .main-layout.is-meeting-active.meeting-level-quiet {
   --meeting-bg: #4caf50;
   --meeting-text: #ffffff;

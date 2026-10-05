@@ -536,7 +536,7 @@ function openInfoWindow(kind) {
 
   const image = document.createElement('img');
   image.className = 'info-window-image';
-  image.src = isSettings ? 'assets/windows/설정창.png' : 'assets/windows/물음표창.png';
+  image.src = 'assets/windows/물음표창.png';
   image.alt = '';
   image.draggable = false;
 

@@ -6,12 +6,16 @@ let overlayScrollbars = null;
 
 export function usesOverlayScrollbars() {
   if (overlayScrollbars !== null) return overlayScrollbars;
+  // Touch browsers can report a scrollbar width even when the bar is hidden
+  // until scrolling (notably iOS Safari with a styled ::-webkit-scrollbar).
+  // Keep the visible in-page scrollbar on those devices regardless of probe width.
+  const touchDevice = window.matchMedia('(any-pointer: coarse)').matches;
   const probe = document.createElement('div');
   probe.className = 'retro-scroll-probe';
   probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:50px;overflow-y:scroll;visibility:hidden;';
   probe.appendChild(document.createElement('div')).style.height = '200px';
   document.body.appendChild(probe);
-  overlayScrollbars = probe.offsetWidth - probe.clientWidth === 0;
+  overlayScrollbars = touchDevice || probe.offsetWidth - probe.clientWidth === 0;
   probe.remove();
   document.documentElement.classList.toggle('uses-retro-scrollbar', overlayScrollbars);
   return overlayScrollbars;
