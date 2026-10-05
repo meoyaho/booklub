@@ -250,7 +250,7 @@ button {
 
 .app-titlebar-settings {
   display: none;
-  background: url('../assets/설정창2.png') center / contain no-repeat;
+  background: url('../assets/buttons/설정.png') center / contain no-repeat;
 }
 
 #screen-main:has(.main-layout.is-meeting-active) .app-titlebar-settings {
@@ -259,7 +259,7 @@ button {
 
 .app-titlebar-settings:hover,
 .app-titlebar-settings:active {
-  background-image: url('../assets/설정창2선택.png');
+  background-image: url('../assets/buttons/설정_선택후.png');
 }
 
 body:has(#screen-main.active) .app-titlebar {
@@ -299,7 +299,7 @@ body:has(#screen-main.active) .app-titlebar {
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: url('../assets/buttons/왼쪽버튼.png') center / 100% 100% no-repeat;
+  background: url('../assets/buttons/왼쪽.png') center / 100% 100% no-repeat;
   color: transparent;
   cursor: pointer;
 }
@@ -540,13 +540,13 @@ body:has(#screen-main.active) #app-logo {
   height: 36px;
   border: 0;
   border-radius: 0;
-  background: url('../assets/buttons/왼쪽버튼.png') center / 100% 100% no-repeat;
+  background: url('../assets/buttons/왼쪽.png') center / 100% 100% no-repeat;
   cursor: pointer;
 }
 
 .year-nav-btn:active { background-image: url('../assets/buttons/왼쪽_선택후.png'); }
-.year-nav-next { background-image: url('../assets/buttons/오른쪽버튼.png'); }
-.year-nav-next:active { background-image: url('../assets/buttons/오른쪽선택후.png'); }
+.year-nav-next { background-image: url('../assets/buttons/오른쪽.png'); }
+.year-nav-next:active { background-image: url('../assets/buttons/오른쪽_선택후.png'); }
 .year-nav-btn:disabled { cursor: not-allowed; opacity: 0.48; }
 
 .calendar-scroll-frame {
@@ -958,7 +958,7 @@ body:has(#screen-main.active) #app-logo {
   height: 24px;
   flex: 0 0 auto;
   border: none;
-  background: transparent url('../assets/back-transparent.png') center / contain no-repeat;
+  background: transparent url('../assets/buttons/뒤로.png') center / contain no-repeat;
   cursor: pointer;
 }
 
@@ -1141,19 +1141,63 @@ body:has(#screen-main.active) #app-logo {
 }
 
 .btn-search,
-.btn-rating-submit {
-  border: none;
+.btn-rating-submit,
+.meeting-finish-btn {
+  /* 예전 버튼 이미지(원본 너비 --btn-src-w px)를 늘려 쓰던 것과 같도록,
+     테두리와 글자 크기를 버튼 너비 --btn-w에 비례시킨다. */
+  box-sizing: border-box;
+  width: var(--btn-w);
+  border: max(2px, calc(var(--btn-w) * var(--btn-bevel) / var(--btn-src-w))) solid;
+  border-color: var(--btn-light) var(--btn-dark) var(--btn-dark) var(--btn-light);
   border-radius: 0;
-  color: transparent;
-}
-
-.btn-search {
-  background: url('../assets/buttons/검색버튼.png') center / 100% 100% no-repeat;
+  background: linear-gradient(180deg, #ecf5ff, #e4effe);
+  color: var(--btn-ink);
+  font-family: inherit;
+  font-size: calc(var(--btn-w) * var(--btn-text) / var(--btn-src-w));
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  padding-top: 0.25em;
 }
 
 .btn-search:hover:not(:disabled),
-.btn-search:active:not(:disabled) {
-  background: url('../assets/buttons/검색_선택후.png') center / 100% 100% no-repeat;
+.btn-search:active:not(:disabled),
+.btn-rating-submit:hover:not(:disabled),
+.btn-rating-submit:active:not(:disabled),
+.meeting-finish-btn:hover:not(:disabled),
+.meeting-finish-btn:active:not(:disabled) {
+  border-color: var(--btn-dark);
+  background: linear-gradient(180deg, #ecf5ff, #e4effe);
+}
+
+.btn-search {
+  --btn-w: 108px;
+  --btn-src-w: 108;
+  --btn-bevel: 4;
+  --btn-text: 31;
+  --btn-light: #d3daf4;
+  --btn-dark: #adb2c8;
+  --btn-ink: #6a7391;
+}
+
+.btn-rating-submit {
+  --btn-w: 138px;
+  --btn-src-w: 138;
+  --btn-bevel: 3;
+  --btn-text: 26;
+  --btn-light: #d3daf4;
+  --btn-dark: #adb2c8;
+  --btn-ink: #445072;
+}
+
+.meeting-finish-btn {
+  --btn-w: 217px;
+  --btn-src-w: 217;
+  --btn-bevel: 5;
+  --btn-text: 45;
+  --btn-light: #f3f6ff;
+  --btn-dark: #717ca5;
+  --btn-ink: #3b5791;
 }
 
 .btn-book-action {
@@ -1174,15 +1218,6 @@ body:has(#screen-main.active) #app-logo {
 .btn-book-action:hover:not(:disabled),
 .btn-book-action:active:not(:disabled) {
   background: #d0ceca;
-}
-
-.btn-rating-submit {
-  background: url('../assets/buttons/보내기_선택전.png') center / 100% 100% no-repeat;
-}
-
-.btn-rating-submit:hover:not(:disabled),
-.btn-rating-submit:active:not(:disabled) {
-  background: url('../assets/buttons/보내기_선택후.png') center / 100% 100% no-repeat;
 }
 
 button:disabled {
@@ -1367,6 +1402,7 @@ button:disabled {
 }
 
 .meeting-confirm-btn {
+  min-height: 44px;
   margin-top: clamp(42px, 5vw, 90px);
 }
 
@@ -1422,7 +1458,7 @@ button:disabled {
   position: absolute;
   top: 50%;
   right: clamp(24px, 3vw, 48px);
-  width: clamp(140px, 12vw, 217px);
+  --btn-w: clamp(140px, 12vw, 217px);
   aspect-ratio: 217 / 70;
   transform: translateY(-50%);
 }
@@ -1661,18 +1697,8 @@ button:disabled {
 }
 
 .meeting-finish-btn {
-  width: 217px;
   min-height: 0;
   padding: 0;
-  border: none;
-  border-radius: 0;
-  background: url('../assets/buttons/완료_선택전.png') center / 100% 100% no-repeat;
-  color: transparent;
-}
-
-.meeting-finish-btn:hover:not(:disabled),
-.meeting-finish-btn:active:not(:disabled) {
-  background: url('../assets/buttons/완료_선택후.png') center / 100% 100% no-repeat;
 }
 
 .magazine-review-panel {
@@ -1904,7 +1930,7 @@ button:disabled {
 }
 
 .month-search-form .btn-search {
-  width: clamp(70px, 5.6vw, 108px);
+  --btn-w: clamp(70px, 5.6vw, 108px);
   min-height: 44px;
   padding: 0;
 }
@@ -2080,7 +2106,7 @@ button:disabled {
   right: 2px;
   width: clamp(22px, 1.6vw, 30px);
   height: clamp(22px, 1.6vw, 30px);
-  background: url('../assets/buttons/취소창.png') center / 100% 100% no-repeat;
+  background: url('../assets/buttons/닫기.png') center / 100% 100% no-repeat;
   border-radius: 0;
 }
 
@@ -2365,7 +2391,7 @@ button:disabled {
   width: clamp(22px, 1.6vw, 30px);
   height: clamp(22px, 1.6vw, 30px);
   border: 0;
-  background: url('../assets/buttons/취소창.png') center / 100% 100% no-repeat;
+  background: url('../assets/buttons/닫기.png') center / 100% 100% no-repeat;
   cursor: pointer;
 }
 
@@ -2495,7 +2521,7 @@ button:disabled {
   pointer-events: none;
 }
 .rating-compose-toolbar .btn-rating-submit {
-  width: clamp(82px, 7.1vw, 136px);
+  --btn-w: clamp(82px, 7.1vw, 136px);
   min-height: clamp(32px, 2.3vw, 44px);
   padding: 0;
 }
@@ -2685,7 +2711,8 @@ button:disabled {
   .book-ready-hero { grid-template-columns: clamp(135px, 12vw, 230px) minmax(0, 1fr); }
   .book-ready-page .detail-eyebrow { font-size: clamp(0.9rem, 1.3vw, 1.5rem); }
   .book-ready-page .detail-top-actions { font-size: clamp(0.78rem, 1vw, 1.1rem); }
-  .book-ready-page { --book-ready-title-size: clamp(1.2rem, 2vw, 2.4rem); }
+  .book-ready-page,
+  .meeting-confirm-btn { --book-ready-title-size: clamp(1.2rem, 2vw, 2.4rem); }
   .book-ready-authors.detail-meta-row,
   .book-ready-rating,
   .book-completed-meta.detail-meta-row { font-size: clamp(0.9rem, 1.35vw, 1.55rem); }
@@ -2709,7 +2736,7 @@ button:disabled {
   .month-search-header { padding: clamp(20px, 2vw, 34px) var(--search-padding); }
   .month-search-header .detail-eyebrow { font-size: clamp(0.9rem, 1.25vw, 1.45rem); }
   .month-search-input { min-height: clamp(40px, 3vw, 54px); font-size: clamp(0.9rem, 1.15vw, 1.3rem); }
-  .month-search-form .btn-search { width: clamp(62px, 4.8vw, 90px); }
+  .month-search-form .btn-search { --btn-w: clamp(62px, 4.8vw, 90px); }
   .month-search-results { gap: clamp(30px, 3.3vw, 58px); padding-block: clamp(26px, 3vw, 54px); }
   .search-result-item { grid-template-columns: clamp(74px, 6.5vw, 120px) minmax(0, 1fr); gap: clamp(16px, 1.9vw, 32px); }
   .search-result-title { font-size: clamp(1.05rem, 1.7vw, 2rem); }
@@ -2730,7 +2757,7 @@ button:disabled {
   }
   .meeting-active-date { font-size: clamp(0.95rem, 1.3vw, 1.5rem); }
   .meeting-active-heading { font-size: clamp(1.5rem, 2.2vw, 2.7rem); }
-  .meeting-active-header .meeting-finish-btn { width: clamp(120px, 10vw, 180px); right: clamp(20px, 2.5vw, 36px); }
+  .meeting-active-header .meeting-finish-btn { --btn-w: clamp(120px, 10vw, 180px); right: clamp(20px, 2.5vw, 36px); }
   .meeting-recording-body { padding: clamp(22px, 2.4vw, 38px); }
   .meeting-recording-status,
   .meeting-guide-hint,
@@ -2784,11 +2811,6 @@ button:disabled {
 
   .splash-guide .guide-character {
     align-self: center;
-  }
-
-  /* 모바일은 단일 컬럼이라 사이드바/패널 화살표가 같은 자리에 겹친다. 터치 스크롤로 충분하므로 숨긴다. */
-  .scroll-arrow-btn {
-    display: none;
   }
 
   #club-name-input,
@@ -3051,7 +3073,8 @@ button:disabled {
   .book-overview-info > .detail-topbar { grid-column: 1 / -1; grid-row: 1; }
   .book-ready-cover.month-detail-cover,
   .book-ready-cover-stage { grid-row: 2 / 5; }
-  .book-ready-page { --book-ready-title-size: 1.15rem; }
+  .book-ready-page,
+  .meeting-confirm-btn { --book-ready-title-size: 1.15rem; }
   .book-ready-authors.detail-meta-row,
   .book-ready-rating { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; font-size: 0.95rem; }
   .book-ready-authors .detail-meta-label { min-width: 0; }
@@ -3161,6 +3184,7 @@ button:disabled {
 
   .meeting-confirm-btn {
     margin-top: 28px;
+    font-size: 0.95rem;
   }
 
   .block-fight-copy .meeting-title {
@@ -3225,7 +3249,7 @@ button:disabled {
 
   .meeting-active-header .meeting-finish-btn {
     right: 10px;
-    width: 78px;
+    --btn-w: 78px;
   }
 
   .meeting-recording-body {
@@ -3373,4 +3397,26 @@ button:disabled {
   #app-logo {
     transition: none;
   }
+}
+
+/* 요약 작성 중: 문구 뒤에 . → .. → ... 반복 (자리를 미리 잡아 글자가 흔들리지 않게) */
+.loading-dots {
+  display: inline-block;
+  min-width: 3ch;
+  text-align: left;
+}
+
+.loading-dots::after {
+  content: '...';
+  animation: loading-dots 1.2s steps(1, end) infinite;
+}
+
+@keyframes loading-dots {
+  0% { content: '.'; }
+  33.333% { content: '..'; }
+  66.667% { content: '...'; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-dots::after { animation: none; }
 }

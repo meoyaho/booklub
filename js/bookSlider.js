@@ -333,6 +333,10 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
     status.className = 'book-ready-empty-summary';
     status.setAttribute('role', 'status');
     status.textContent = '분석중';
+    const dots = document.createElement('span');
+    dots.className = 'loading-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    status.appendChild(dots);
     page.appendChild(status);
   } else if (completed) {
     const duration = createMetaRow('토론시간', book.discussionDurationSeconds == null
@@ -1513,6 +1517,18 @@ export function renderUploadDateModal({ onConfirm, onCancel } = {}) {
   input.focus();
 }
 
+let monthGridResizeObserver = null;
+
+// 화면이 숨겨진 채로 그려지거나(스플래시·모바일 페이지 전환) 이미지가 늦게 로드되면
+// 그릴 때 잰 스크롤 여부가 틀리므로, 크기가 바뀔 때마다 다시 확인한다.
+function observeMonthGridSize(grid) {
+  monthGridResizeObserver?.disconnect();
+  if (typeof ResizeObserver === 'undefined') return;
+  monthGridResizeObserver = new ResizeObserver(() => updateMonthGridScrollArrowVisibility());
+  monthGridResizeObserver.observe(grid);
+  [...grid.children].forEach((cell) => monthGridResizeObserver.observe(cell));
+}
+
 export function updateMonthGridScrollArrowVisibility() {
   const grid = document.getElementById('month-grid');
   const frame = grid?.closest('.calendar-scroll-frame');
@@ -1614,6 +1630,7 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   container.appendChild(stack);
   grid.scrollTop = previousScrollTop;
   updateMonthGridScrollArrowVisibility();
+  observeMonthGridSize(grid);
 
   if (handlers.view === 'search' || handlers.view === 'edit-search') {
     detail.innerHTML = '';

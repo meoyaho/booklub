@@ -535,7 +535,7 @@ function openInfoWindow(kind) {
 
   const image = document.createElement('img');
   image.className = 'info-window-image';
-  image.src = isSettings ? 'assets/설정창.png' : 'assets/물음표창.png';
+  image.src = isSettings ? 'assets/windows/설정창.png' : 'assets/windows/물음표창.png';
   image.alt = '';
   image.draggable = false;
 
@@ -1333,6 +1333,22 @@ window.addEventListener('resize', () => {
   updateScrollArrowVisibility();
   updateMonthGridScrollArrowVisibility();
 });
+
+// 상세 패널은 내용이 통째로 다시 그려지므로, 새 내용이 들어올 때마다 크기 감시 대상을 바꾼다.
+function observeDetailPanelSize() {
+  const panel = document.getElementById('month-detail');
+  if (!panel || typeof ResizeObserver === 'undefined') return;
+  const resizeObserver = new ResizeObserver(() => updateScrollArrowVisibility());
+  const observeContent = () => {
+    resizeObserver.disconnect();
+    resizeObserver.observe(panel);
+    [...panel.children].forEach((child) => resizeObserver.observe(child));
+  };
+  observeContent();
+  new MutationObserver(observeContent).observe(panel, { childList: true });
+}
+
+observeDetailPanelSize();
 
 renderSplashGuide();
 
