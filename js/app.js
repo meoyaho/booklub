@@ -20,6 +20,7 @@ import {
 } from './bookSlider.js';
 import { searchBooks } from './search.js';
 import { DecibelMonitor } from './decibelMonitor.js';
+import { attachRetroScrollbar } from './retroScrollbar.js';
 import {
   getThresholds,
   setThresholds,
@@ -583,6 +584,7 @@ function updateScrollArrowVisibility() {
   up.hidden = !canScroll;
   down.hidden = !canScroll;
   panel.classList.toggle('is-not-scrollable', !canScroll);
+  panel.retroScrollbar?.update(canScroll);
 }
 
 function enterMainFromSplash() {
@@ -1337,8 +1339,10 @@ window.addEventListener('resize', () => {
 // 상세 패널은 내용이 통째로 다시 그려지므로, 새 내용이 들어올 때마다 크기 감시 대상을 바꾼다.
 function observeDetailPanelSize() {
   const panel = document.getElementById('month-detail');
-  if (!panel || typeof ResizeObserver === 'undefined') return;
-  const resizeObserver = new ResizeObserver(() => updateScrollArrowVisibility());
+  if (!panel) return;
+  attachRetroScrollbar(panel, panel.parentElement, 'panel');
+  if (typeof ResizeObserver === 'undefined') return;
+  const resizeObserver = new ResizeObserver(() => requestAnimationFrame(updateScrollArrowVisibility));
   const observeContent = () => {
     resizeObserver.disconnect();
     resizeObserver.observe(panel);

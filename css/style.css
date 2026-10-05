@@ -54,7 +54,8 @@ body {
 
 .month-grid::-webkit-scrollbar,
 #book-slider::-webkit-scrollbar,
-.month-detail::-webkit-scrollbar {
+.month-detail::-webkit-scrollbar,
+.retro-scroll-probe::-webkit-scrollbar {
   width: var(--retro-scrollbar-size);
   background: #f8f6eb;
 }
@@ -323,6 +324,47 @@ body:has(#screen-main.active) .app-titlebar {
 .scroll-arrow-panel.scroll-arrow-up { top: 4px; right: 4px; }
 .scroll-arrow-panel.scroll-arrow-down { bottom: 4px; right: 4px; }
 .scroll-arrow-btn[hidden] { display: none; }
+
+/* iOS처럼 스크롤바를 꾸밀 수 없는 환경에서 직접 그리는 레트로 스크롤바 (js/retroScrollbar.js).
+   위치는 위아래 화살표 사이에 맞춘다. */
+.retro-scrollbar {
+  position: absolute;
+  z-index: 9;
+  width: var(--retro-scrollbar-size);
+  background: #f8f6eb;
+  touch-action: none;
+}
+
+.retro-scrollbar[hidden] { display: none; }
+
+.retro-scrollbar-calendar {
+  top: var(--retro-scrollbar-size);
+  right: 0;
+  bottom: var(--retro-scrollbar-size);
+}
+
+.retro-scrollbar-panel {
+  top: calc(4px + var(--retro-scrollbar-size));
+  right: 4px;
+  bottom: calc(4px + var(--retro-scrollbar-size));
+}
+
+.retro-scrollbar-thumb {
+  box-sizing: border-box;
+  width: 100%;
+  border: 3px solid;
+  border-color: #fffef5 #454541 #454541 #fffef5;
+  background: var(--retro-face);
+}
+
+/* 겹쳐 그리는 스크롤바는 자리를 차지하지 않으므로, 직접 그린 스크롤바 폭만큼 내용 오른쪽을 비워둔다. */
+.uses-retro-scrollbar .month-grid:not(.is-not-scrollable) {
+  border-right: var(--retro-scrollbar-size) solid transparent;
+}
+
+.uses-retro-scrollbar .month-detail:not(.is-not-scrollable) {
+  padding-right: var(--retro-scrollbar-size);
+}
 
 .main-layout.is-meeting-active.meeting-level-quiet {
   --meeting-bg: #4caf50;

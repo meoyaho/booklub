@@ -1,5 +1,6 @@
 // js/bookSlider.js
 import { formatDurationSeconds, formatMeetingDate, formatLogTimestamp } from './meetingFormat.js';
+import { attachRetroScrollbar } from './retroScrollbar.js';
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MEETING_RULES = [
@@ -1524,7 +1525,7 @@ let monthGridResizeObserver = null;
 function observeMonthGridSize(grid) {
   monthGridResizeObserver?.disconnect();
   if (typeof ResizeObserver === 'undefined') return;
-  monthGridResizeObserver = new ResizeObserver(() => updateMonthGridScrollArrowVisibility());
+  monthGridResizeObserver = new ResizeObserver(() => requestAnimationFrame(updateMonthGridScrollArrowVisibility));
   monthGridResizeObserver.observe(grid);
   [...grid.children].forEach((cell) => monthGridResizeObserver.observe(cell));
 }
@@ -1538,6 +1539,7 @@ export function updateMonthGridScrollArrowVisibility() {
   frame.querySelectorAll(':scope > .scroll-arrow-up, :scope > .scroll-arrow-down')
     .forEach((button) => { button.hidden = !canScroll; });
   grid.classList.toggle('is-not-scrollable', !canScroll);
+  grid.retroScrollbar?.update(canScroll);
 }
 
 export function renderBookSlider(books, selectedPeriod, handlers) {
@@ -1629,6 +1631,7 @@ export function renderBookSlider(books, selectedPeriod, handlers) {
   stack.appendChild(board);
   container.appendChild(stack);
   grid.scrollTop = previousScrollTop;
+  attachRetroScrollbar(grid, calendarFrame, 'calendar');
   updateMonthGridScrollArrowVisibility();
   observeMonthGridSize(grid);
 
