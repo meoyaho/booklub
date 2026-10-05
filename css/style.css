@@ -1115,16 +1115,7 @@ body:has(#screen-main.active) #app-logo {
   background: linear-gradient(180deg, #d8d4c8, #ffffff);
 }
 
-/*
- * 전용 레퍼런스 이미지가 있는 버튼은 해당 이미지를 배경으로 사용한다.
- * 라벨이 이미지에 이미 그려져 있으므로 DOM 텍스트는 color: transparent 로
- * 시각적으로만 감춘다(스크린리더에는 그대로 노출).
- * hover 규칙은 위의 .detail-action-* hover 단축 속성이 background-size/repeat 를
- * 되돌리지 않도록 단축 속성 전체를 다시 선언한다.
- */
 .btn-search,
-.btn-start-meeting,
-.btn-upload-recording,
 .btn-rating-submit {
   border: none;
   border-radius: 0;
@@ -1140,55 +1131,23 @@ body:has(#screen-main.active) #app-logo {
   background: url('../assets/buttons/검색_선택후.png') center / 100% 100% no-repeat;
 }
 
-.btn-start-meeting {
-  aspect-ratio: 322 / 72;
-  background: url('../assets/buttons/독서모임시작_선택전.png') center / 100% 100% no-repeat;
-}
-
-.btn-start-meeting:hover:not(:disabled),
-.btn-start-meeting:active:not(:disabled) {
-  background: url('../assets/buttons/독서모임시작_선택후.png') center / 100% 100% no-repeat;
-}
-
-.btn-upload-recording {
-  aspect-ratio: 366 / 72;
-  background: url('../assets/buttons/녹음본_업로드하기_선택전.png') center / 100% 100% no-repeat;
-}
-
-.btn-upload-recording:hover:not(:disabled),
-.btn-upload-recording:active:not(:disabled) {
-  background: url('../assets/buttons/녹음본업로드하기선택후.png') center / 100% 100% no-repeat;
-}
-
-/*
- * 다른 곳에서 걸리는 min-height/width (.detail-action-primary/secondary,
- * .book-ready-actions button 및 그 반응형 변형)는 book-ready-title 과 무관하게 크기를
- * 고정해서 aspect-ratio 와 충돌하며 버튼이 납작/길쭉하게 찌그러지는 원인이 된다.
- * 클래스를 두 번 써서 특이도(0,2,0)를 높여 어떤 컨텍스트에서도 항상 이기도록 한다.
- *
- * 버튼 PNG(독서모임시작_선택전.png, 녹음본_업로드하기_선택전.png) 안의 실제 글자는
- * 이미지 전체 높이(72px)의 약 32px만 차지한다(테두리/여백 제외, 72/32 = 2.25배).
- * 버튼 높이를 book-ready-title 폰트 크기 그대로 맞추면 이미지 안 글자가 title보다
- * 훨씬 작아 보이므로, 버튼 이미지 안 글자 크기가 title과 같아지도록 2.25배로 키운
- * 값을 버튼 높이로 쓰고 폭은 aspect-ratio 로만 결정되게 한다.
- */
-.btn-start-meeting.btn-start-meeting,
-.btn-upload-recording.btn-upload-recording,
-.btn-edit-book.btn-edit-book {
+.btn-book-action {
   width: auto;
-  min-height: 0;
   height: calc(var(--book-ready-title-size) * 1.6);
-  align-self: center;
-}
-
-.btn-edit-book.btn-edit-book {
   padding: 0 18px;
   background: #d0ceca;
   font-size: clamp(0.75rem, 1.4vw, 1.2rem);
+  white-space: nowrap;
 }
 
-.btn-edit-book.btn-edit-book:hover:not(:disabled),
-.btn-edit-book.btn-edit-book:active:not(:disabled) {
+.book-ready-actions .btn-book-action {
+  min-height: 44px;
+  align-self: center;
+  padding-inline: 18px;
+}
+
+.btn-book-action:hover:not(:disabled),
+.btn-book-action:active:not(:disabled) {
   background: #d0ceca;
 }
 
@@ -1401,20 +1360,7 @@ button:disabled {
 }
 
 .meeting-confirm-btn {
-  width: min(321px, 62%);
-  min-height: 0;
-  aspect-ratio: 321 / 72;
   margin-top: clamp(42px, 5vw, 90px);
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: url('../assets/buttons/진짜_시작하기_선택전.png') center / 100% 100% no-repeat;
-  color: transparent;
-}
-
-.meeting-confirm-btn:hover:not(:disabled),
-.meeting-confirm-btn:active:not(:disabled) {
-  background: url('../assets/buttons/진짜시작하기_선택후.png') center / 100% 100% no-repeat;
 }
 
 .meeting-permission-copy {
@@ -2415,6 +2361,7 @@ button:disabled {
   .book-ready-authors.detail-meta-row,
   .book-ready-rating,
   .book-completed-meta.detail-meta-row { font-size: clamp(0.9rem, 1.35vw, 1.55rem); }
+  .btn-book-action { font-size: clamp(0.9rem, 1.35vw, 1.55rem); }
   .book-ready-rating-button .star-rating { font-size: clamp(0.95rem, 1.7vw, 2rem); }
   .book-ready-actions button { min-height: clamp(40px, 3.2vw, 60px); }
   .book-ready-empty-summary { margin-top: clamp(26px, 2.6vw, 48px); font-size: clamp(1rem, 1.45vw, 1.7rem); }
@@ -2447,7 +2394,7 @@ button:disabled {
     margin-top: clamp(28px, 3vw, 52px);
     font-size: clamp(1.1rem, 1.7vw, 2rem);
   }
-  .meeting-confirm-btn { width: min(280px, 54%); margin-top: clamp(30px, 3.5vw, 58px); }
+  .meeting-confirm-btn { margin-top: clamp(30px, 3.5vw, 58px); }
 
   .meeting-active-header {
     min-height: clamp(125px, 15vh, 155px);
@@ -2775,11 +2722,12 @@ button:disabled {
   .book-ready-cover-stage { grid-row: 2 / 5; }
   .book-ready-page { --book-ready-title-size: 1.15rem; }
   .book-ready-authors.detail-meta-row,
-  .book-ready-rating { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; font-size: 0.85rem; }
+  .book-ready-rating { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; font-size: 0.95rem; }
   .book-ready-authors .detail-meta-label { min-width: 0; }
   .book-ready-rating-button { flex-wrap: wrap; gap: 6px; }
   .book-ready-rating-button .star-rating { font-size: 1rem; }
   .book-overview-info > .book-ready-actions { grid-column: 1 / -1; padding-top: 8px; }
+  .book-ready-actions .btn-book-action { font-size: 0.95rem; }
   .book-ready-empty-summary { font-size: 1rem; }
 
   .book-completed-page .book-ready-hero { grid-template-rows: auto auto auto 1fr auto auto; }

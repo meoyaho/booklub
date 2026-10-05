@@ -355,12 +355,12 @@ function renderDetailWithBook(detail, book, selectedPeriod, handlers) {
     const actions = document.createElement('div');
     actions.className = 'book-ready-actions';
     const startButton = document.createElement('button');
-    startButton.className = 'detail-action-primary btn-start-meeting';
+    startButton.className = 'detail-action-primary btn-book-action';
     startButton.type = 'button';
-    startButton.textContent = '독서모임 시작';
+    startButton.textContent = '독서모임 시작!';
     startButton.addEventListener('click', () => handlers.onStartMeeting(book.id));
     const uploadButton = document.createElement('button');
-    uploadButton.className = 'detail-action-secondary btn-upload-recording';
+    uploadButton.className = 'detail-action-secondary btn-book-action';
     uploadButton.type = 'button';
     uploadButton.textContent = '녹음본 업로드';
     uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
@@ -517,19 +517,19 @@ function renderBookEdit(detail, book, selectedPeriod, handlers) {
   actionBar.className = 'book-ready-actions book-edit-actions';
 
   const editBookButton = document.createElement('button');
-  editBookButton.className = 'detail-action-primary btn-edit-book';
+  editBookButton.className = 'detail-action-primary btn-book-action';
   editBookButton.type = 'button';
   editBookButton.textContent = '책 바꾸기';
   editBookButton.addEventListener('click', () => handlers.onEditCover?.(book.id));
 
   const startButton = document.createElement('button');
-  startButton.className = 'detail-action-primary btn-start-meeting';
+  startButton.className = 'detail-action-primary btn-book-action';
   startButton.type = 'button';
-  startButton.textContent = '독서모임 시작';
+  startButton.textContent = '독서모임 시작!';
   startButton.addEventListener('click', () => handlers.onStartMeeting(book.id));
 
   const uploadButton = document.createElement('button');
-  uploadButton.className = 'detail-action-secondary btn-upload-recording';
+  uploadButton.className = 'detail-action-secondary btn-book-action';
   uploadButton.type = 'button';
   uploadButton.textContent = '녹음본 업로드';
   uploadButton.addEventListener('click', () => handlers.onUploadRecording(book.id));
@@ -888,7 +888,7 @@ function createMeetingCopy({
 
   if (includeConsent) {
     const confirmButton = document.createElement('button');
-    confirmButton.className = 'detail-action-primary meeting-confirm-btn';
+    confirmButton.className = 'detail-action-primary btn-book-action meeting-confirm-btn';
     confirmButton.type = 'button';
     confirmButton.textContent = '진짜 시작하기!';
     confirmButton.addEventListener('click', onConfirm);
