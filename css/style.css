@@ -349,6 +349,12 @@ body:has(#screen-main.active) .app-titlebar {
   bottom: calc(4px + var(--retro-scrollbar-size));
 }
 
+.retro-scrollbar-rating {
+  top: var(--retro-scrollbar-size);
+  right: 0;
+  bottom: var(--retro-scrollbar-size);
+}
+
 .retro-scrollbar-thumb {
   box-sizing: border-box;
   width: 100%;
@@ -2463,8 +2469,6 @@ button:disabled {
   background: #f7fcfe;
 }
 
-#rating-modal .scroll-arrow-btn { display: grid; }
-
 #rating-modal .rating-modal-list,
 #rating-modal .rating-modal-review {
   width: 100%;
@@ -2474,11 +2478,31 @@ button:disabled {
   padding: clamp(12px, 1vw, 20px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
   background: #f7fcfe;
   color: #111111;
   font-size: var(--rating-copy-size);
   line-height: 1.3;
+}
+
+#rating-modal .rating-scroll-frame.is-scrollable .rating-modal-list,
+#rating-modal .rating-scroll-frame.is-scrollable .rating-modal-review {
+  scrollbar-gutter: stable;
+}
+
+.uses-retro-scrollbar #rating-modal .rating-modal-list,
+.uses-retro-scrollbar #rating-modal .rating-modal-review {
+  scrollbar-width: none;
+}
+
+.uses-retro-scrollbar #rating-modal .rating-modal-list::-webkit-scrollbar,
+.uses-retro-scrollbar #rating-modal .rating-modal-review::-webkit-scrollbar {
+  display: none;
+}
+
+.uses-retro-scrollbar #rating-modal .rating-scroll-frame.is-scrollable .rating-modal-list,
+.uses-retro-scrollbar #rating-modal .rating-scroll-frame.is-scrollable .rating-modal-review {
+  border-right: var(--retro-scrollbar-size) solid transparent;
 }
 
 #rating-modal .rating-modal-list::-webkit-scrollbar,
@@ -2553,7 +2577,6 @@ button:disabled {
 .rating-picker { display: flex; align-items: center; gap: 2px; }
 .rating-picker:focus-visible { outline: 2px dotted #3f5d95; outline-offset: 2px; }
 .rating-picker-star {
-  position: relative;
   padding: 2px 0;
   border: 0;
   background: transparent;
@@ -2562,7 +2585,8 @@ button:disabled {
   cursor: pointer;
   pointer-events: auto;
 }
-.rating-picker-star-empty { color: #c9c9c2; }
+.rating-picker-star-glyph { position: relative; display: block; }
+.rating-picker-star-empty { display: block; color: #c9c9c2; }
 .rating-picker-star-fill {
   position: absolute;
   top: 0;

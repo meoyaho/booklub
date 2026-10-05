@@ -1206,6 +1206,7 @@ function removeRatingModal() {
   const overlay = document.getElementById('rating-modal');
   if (!overlay) return;
   const returnFocus = overlay.returnFocus;
+  overlay.querySelectorAll('.rating-scroll-frame').forEach((frame) => frame.stopScrollObserver?.());
   overlay.remove();
   if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
   else document.querySelector('.detail-rating-trigger')?.focus({ preventScroll: true });
@@ -1245,7 +1246,10 @@ function createStarPicker(initialValue, onChange) {
     const fill = document.createElement('span');
     fill.className = 'rating-picker-star-fill';
     fill.textContent = '★';
-    button.append(empty, fill);
+    const glyph = document.createElement('span');
+    glyph.className = 'rating-picker-star-glyph';
+    glyph.append(empty, fill);
+    button.appendChild(glyph);
     button.fill = fill;
 
     button.addEventListener('click', (event) => {
@@ -1273,15 +1277,39 @@ function createRatingScrollFrame(scroller, label) {
   const frame = document.createElement('div');
   frame.className = 'rating-scroll-frame';
   frame.appendChild(scroller);
+  const buttons = [];
   for (const [direction, distance, text] of [['up', -120, '위로'], ['down', 120, '아래로']]) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `scroll-arrow-btn scroll-arrow-${direction}`;
+    button.hidden = true;
     button.setAttribute('aria-label', `${label} ${text} 스크롤`);
     button.setAttribute('aria-controls', scroller.id);
     button.addEventListener('click', () => scroller.scrollBy({ top: distance, behavior: 'smooth' }));
     frame.appendChild(button);
+    buttons.push(button);
   }
+
+  attachRetroScrollbar(scroller, frame, 'rating');
+  const update = () => {
+    if (!frame.isConnected) return;
+    const canScroll = scroller.scrollHeight > scroller.clientHeight + 1;
+    frame.classList.toggle('is-scrollable', canScroll);
+    buttons.forEach((button) => { button.hidden = !canScroll; });
+    scroller.retroScrollbar?.update(canScroll);
+  };
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+    requestAnimationFrame(update);
+  });
+  observer?.observe(scroller);
+  [...scroller.children].forEach((child) => observer?.observe(child));
+  scroller.addEventListener('input', update);
+  frame.updateScrollState = update;
+  frame.stopScrollObserver = () => {
+    observer?.disconnect();
+    scroller.removeEventListener('input', update);
+    scroller.retroScrollbar?.destroy();
+  };
   return frame;
 }
 
@@ -1346,6 +1374,7 @@ function renderRatingModal(book, handlers, { editable = false } = {}) {
           nameInput.value = review.name || '';
           picker.setValue(review.rating || 5);
           reviewInput.value = review.review || '';
+          reviewFrame.updateScrollState();
           submitButton.textContent = '수정 저장';
           nameInput.focus({ preventScroll: true });
         });
@@ -1394,12 +1423,13 @@ function renderRatingModal(book, handlers, { editable = false } = {}) {
   reviewInput.setAttribute('aria-label', '감상평');
 
   const picker = createStarPicker(5, () => {});
+  const reviewFrame = createRatingScrollFrame(reviewInput, '감상평 입력');
   const submitButton = document.createElement('button');
   submitButton.type = 'submit';
   submitButton.className = 'detail-action-primary btn-rating-submit';
   submitButton.textContent = '보내기';
   toolbar.append(nameLabel, picker, submitButton);
-  form.append(toolbar, createRatingScrollFrame(reviewInput, '감상평 입력'));
+  form.append(toolbar, reviewFrame);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const name = nameInput.value.trim();
@@ -1412,7 +1442,8 @@ function renderRatingModal(book, handlers, { editable = false } = {}) {
     removeRatingModal();
   });
 
-  modal.append(titlebar, createRatingScrollFrame(list, '감상평 목록'), form);
+  const listFrame = createRatingScrollFrame(list, '감상평 목록');
+  modal.append(titlebar, listFrame, form);
   overlay.appendChild(modal);
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) removeRatingModal();
@@ -1436,6 +1467,12 @@ function renderRatingModal(book, handlers, { editable = false } = {}) {
     }
   });
   document.body.appendChild(overlay);
+  listFrame.updateScrollState();
+  reviewFrame.updateScrollState();
+  document.fonts?.ready.then(() => {
+    listFrame.updateScrollState();
+    reviewFrame.updateScrollState();
+  });
   nameInput.focus({ preventScroll: true });
 }
 

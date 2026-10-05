@@ -1243,7 +1243,13 @@ async function saveRatingReview(bookId, reviews) {
 async function shareBookCard(book, buttonEl) {
   if (buttonEl) buttonEl.disabled = true;
   try {
-    await shareOrDownloadCard(book);
+    const clubName = splashClubName || (await getClub(currentClubId))?.name?.trim();
+    if (!clubName) {
+      alert('독서모임 이름을 불러오지 못했습니다. 다시 시도해주세요.');
+      return;
+    }
+    splashClubName = clubName;
+    await shareOrDownloadCard(book, clubName);
   } catch (err) {
     alert('공유 카드를 만들지 못했습니다. 다시 시도해주세요.');
   } finally {
